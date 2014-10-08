@@ -1,3 +1,9 @@
+*.cpp.cbTemp
+haz1/*.depend
+haz1/*.layout
+/bin
+/obj
+
 #################
 ## Eclipse
 #################
@@ -213,9 +219,3 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
-
-*.cpp.cbTemp
-haz1/*.depend
-haz1/*.layout
-/bin
-/obj
