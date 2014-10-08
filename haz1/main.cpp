@@ -130,7 +130,7 @@ const int camWidth = 68;
 
 bool leftclick = false;
 bool rightclick = false;
-bool space=false;
+bool space = false;
 
 Vector center;
 
@@ -145,8 +145,8 @@ Vector convCoords(int x, int y)
     Vector ret;
     float divx = (float)screenWidth / (float)camWidth;
     float divy = (float)screenHeight / (float)camHeight;
-    ret.x = x / divx;
-    ret.y = (screenHeight - y) / divy;
+    ret.x =  (x) / divx ;
+    ret.y =  (screenHeight - y) / divy ;
     return ret;
 }
 
@@ -362,11 +362,15 @@ void onDisplay( )
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
-        glTranslatef(-1.0, -1.0, 0);
-        glScalef(2 * 1 / (float)camWidth, 2 * 1 / (float)camHeight, 1);
         if(rightclick){
+            glTranslatef(-2*center.x/(float)camWidth, -2*center.y/(float)camHeight, 0);
+
+        }else{
+            glTranslatef(-1.0, -1.0, 0);
 
         }
+        glScalef(2 * 1 / (float)camWidth, 2 * 1 / (float)camHeight, 1);
+
 
 
 
@@ -385,7 +389,7 @@ void onDisplay( )
 void onKeyboard(unsigned char key, int x, int y)
 {
     if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-    if (key == ' ') space=!space;
+    if (key == ' ') space = !space;
 
 }
 
@@ -402,7 +406,7 @@ void onMouse(int button, int state, int x, int y)
 
         if(pointnum < 10) {
             controlPoints[pointnum] = convCoords(x, y);
-            std::cout<<controlPoints[pointnum].x<<" "<<controlPoints[pointnum].y<<std::endl;
+            std::cout << controlPoints[pointnum].x << " " << controlPoints[pointnum].y << std::endl;
             time[pointnum] = glutGet(GLUT_ELAPSED_TIME) / 100;
             pointnum++;
         }
@@ -433,18 +437,18 @@ void onMouseMotion(int x, int y)
 }
 
 
-long lasttime=0;
+long lasttime = 0;
 
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( )
 {
     long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-    int diff=currenttime-lasttime;
+    int diff = currenttime - lasttime;
 
-    if(space&&diff>50){
-        lasttime=currenttime;
+    if(space && diff > 50) {
+        lasttime = currenttime;
 
-        std::cout<<diff<<std::endl;
+        std::cout << diff << std::endl;
     }
 
 }
