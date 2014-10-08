@@ -133,7 +133,6 @@ bool rightclick = false;
 bool space = false;
 
 long lasttime = 0;
-long dtime=0;
 
 Vector *center;
 Vector c1=Vector(camWidth/2,camHeight/2);
@@ -184,8 +183,9 @@ void putConvex()
 		int burokdb = 1;
 		burok[0] = &controlPoints[minyPoint];
 		Vector *current = burok[0];
+		std::cout<<current->x<<" "<<current->y<<std::endl;
 		bool alma = true;
-		while(alma) {
+		while(alma && burokdb<=pointnum+1) {
 			for(int i = 0; i < pointnum; i++) {
 				Vector v = controlPoints[i] - *current;
 				if(current != &controlPoints[i]) {
@@ -203,9 +203,11 @@ void putConvex()
 						}
 					}
 					if(hatar) {
+
 						burok[burokdb++] = &controlPoints[i];
 						current = &controlPoints[i];
-						if(burok[0] == burok[burokdb-1] || (burok[0]->y==burok[burokdb-1]->y && burok[0]->x==burok[burokdb-1]->x)) {
+						std::cout<<current->x<<" "<<current->y<<std::endl;
+						if(burok[0] == burok[burokdb-1]) {
 							alma = false;
 						}
 						break;
@@ -213,6 +215,7 @@ void putConvex()
 				}
 			}
 		}
+		std::cout<<std::endl;
 		glColor3f(0.5f, 1.0f, 1.0f);
 		glBegin(GL_POLYGON);
 		for(int i = 0; i < burokdb; i++) {
@@ -348,8 +351,8 @@ void drawBezier()
 void onInitialization( )
 {
 	glViewport(0, 0, screenWidth, screenHeight);
-    lasttime=glutGet(GLUT_ELAPSED_TIME);
-    center=&c1;
+	lasttime=glutGet(GLUT_ELAPSED_TIME);
+	center=&c1;
 
 }
 
@@ -365,7 +368,7 @@ void onDisplay( )
 
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
-        glTranslatef(-2*center->x/(float)camWidth, -2*center->y/(float)camHeight, 0);
+		glTranslatef(-2*center->x/(float)camWidth, -2*center->y/(float)camHeight, 0);
 		glScalef(2 * 1 / (float)camWidth, 2 * 1 / (float)camHeight, 1);
 
 
@@ -417,7 +420,7 @@ void onMouse(int button, int state, int x, int y)
 		Vector p = convCoords(x, y);
 
 		for(int i = 0; i < pointnum; i++) {
-            std::cout<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
+			std::cout<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
 			if(pow(p.x - controlPoints[i].x, 2.0) + pow(p.y - controlPoints[i].y, 2.0)-r*r<=0) {
 				tolodas.x+=center->x-controlPoints[i].x;
 				tolodas.y+=center->y-controlPoints[i].y;
@@ -447,41 +450,40 @@ void onMouseMotion(int x, int y)
 void onIdle( )
 {
 
-    if(space){
-        long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-        static int j[10]={0,500,0,500,0,500,0,500,0,500};
+	if(space) {
+		long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+		static int j[10]= {0,500,0,500,0,500,0,500,0,500};
 
-        int diff = currenttime - lasttime;
-        float osztas=1000;
-        if(diff >= 5) {
-            dtime+=50;
-            lasttime = currenttime;
-            for (int i=0;i<pointnum ;i++ ){
-                Vector temp;
-                bool c=false;
-                if(center==&controlPoints[i]){
-                    temp=*center;
-                    c=true;
-                }
-                if(i%2){ //ptlan
-                    controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI);
-                    controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI);
-                }else{ //prs
-                    controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI);
-                    controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI);
-                }
-                if(c){
-                    tolodas.x+=temp.x-controlPoints[i].x;
-                    tolodas.y+=temp.y-controlPoints[i].y;
-                }
-                j[i]++;
-                //std::cout<<i<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<" "<<circularcenters[i].x<<" "<<circularcenters[i].y<<std::endl;
-            }
+		int diff = currenttime - lasttime;
+		float osztas=1000;
+		if(diff >= 5) {
+			lasttime = currenttime;
+			for (int i=0; i<pointnum ; i++ ) {
+				Vector temp;
+				bool c=false;
+				if(center==&controlPoints[i]) {
+					temp=*center;
+					c=true;
+				}
+				if(i%2) { //ptlan
+					controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI);
+					controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI);
+				} else { //prs
+					controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI);
+					controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI);
+				}
+				if(c) {
+					tolodas.x+=temp.x-controlPoints[i].x;
+					tolodas.y+=temp.y-controlPoints[i].y;
+				}
+				j[i]++;
+				//std::cout<<i<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<" "<<circularcenters[i].x<<" "<<circularcenters[i].y<<std::endl;
+			}
 
-            //std::cout <<j[pointnum-1]<<" "<< controlPoints[pointnum-1].x<<" "<< controlPoints[pointnum-1].y<< std::endl;
-            glutPostRedisplay();
-        }
-    }
+			//std::cout <<j[pointnum-1]<<" "<< controlPoints[pointnum-1].x<<" "<< controlPoints[pointnum-1].y<< std::endl;
+			glutPostRedisplay();
+		}
+	}
 }
 
 // ...Idaig modosithatod
