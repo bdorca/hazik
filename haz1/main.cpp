@@ -66,59 +66,59 @@
 // 3D Vektor
 //--------------------------------------------------------
 struct Vector {
-    float x, y, z;
+	float x, y, z;
 
-    Vector( ) {
-        x = y = z = 0;
-    }
-    Vector(float x0, float y0, float z0 = 0) {
-        x = x0;
-        y = y0;
-        z = z0;
-    }
-    Vector operator*(float a) {
-        return Vector(x * a, y * a, z * a);
-    }
-    Vector operator+(const Vector &v) {
-        return Vector(x + v.x, y + v.y, z + v.z);
-    }
-    Vector operator-(const Vector &v) {
-        return Vector(x - v.x, y - v.y, z - v.z);
-    }
-    float operator*(const Vector &v) { 	// dot product
-        return (x * v.x + y * v.y + z * v.z);
-    }
-    Vector operator%(const Vector &v) { 	// cross product
-        return Vector(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
-    }
-    float Length() {
-        return sqrt(x * x + y * y + z * z);
-    }
+	Vector( ) {
+		x = y = z = 0;
+	}
+	Vector(float x0, float y0, float z0 = 0) {
+		x = x0;
+		y = y0;
+		z = z0;
+	}
+	Vector operator*(float a) {
+		return Vector(x * a, y * a, z * a);
+	}
+	Vector operator+(const Vector &v) {
+		return Vector(x + v.x, y + v.y, z + v.z);
+	}
+	Vector operator-(const Vector &v) {
+		return Vector(x - v.x, y - v.y, z - v.z);
+	}
+	float operator*(const Vector &v) { 	// dot product
+		return (x * v.x + y * v.y + z * v.z);
+	}
+	Vector operator%(const Vector &v) { 	// cross product
+		return Vector(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
+	}
+	float Length() {
+		return sqrt(x * x + y * y + z * z);
+	}
 };
 
 //--------------------------------------------------------
 // Spektrum illetve szin
 //--------------------------------------------------------
 struct Color {
-    float r, g, b;
+	float r, g, b;
 
-    Color( ) {
-        r = g = b = 0;
-    }
-    Color(float r0, float g0, float b0) {
-        r = r0;
-        g = g0;
-        b = b0;
-    }
-    Color operator*(float a) {
-        return Color(r * a, g * a, b * a);
-    }
-    Color operator*(const Color &c) {
-        return Color(r * c.r, g * c.g, b * c.b);
-    }
-    Color operator+(const Color &c) {
-        return Color(r + c.r, g + c.g, b + c.b);
-    }
+	Color( ) {
+		r = g = b = 0;
+	}
+	Color(float r0, float g0, float b0) {
+		r = r0;
+		g = g0;
+		b = b0;
+	}
+	Color operator*(float a) {
+		return Color(r * a, g * a, b * a);
+	}
+	Color operator*(const Color &c) {
+		return Color(r * c.r, g * c.g, b * c.b);
+	}
+	Color operator+(const Color &c) {
+		return Color(r + c.r, g + c.g, b + c.b);
+	}
 };
 
 
@@ -132,173 +132,176 @@ bool leftclick = false;
 bool rightclick = false;
 bool space = false;
 
-Vector center;
+long lasttime = 0;
+long dtime=0;
 
-Color image[screenWidth *screenHeight];	// egy alkalmazás ablaknyi kép
+Vector *center;
+Vector c1=Vector(camWidth/2,camHeight/2);
+Vector tolodas;
 int pointnum = 0;
 Vector controlPoints[10];
 float time[10];
+Vector circularcenters[10];
 
 
 Vector convCoords(int x, int y)
 {
-    Vector ret;
-    float divx = (float)screenWidth / (float)camWidth;
-    float divy = (float)screenHeight / (float)camHeight;
-    ret.x =  (x) / divx ;
-    ret.y =  (screenHeight - y) / divy ;
-    return ret;
+	Vector ret;
+	float divx = (float)screenWidth / (float)camWidth;
+	float divy = (float)screenHeight / (float)camHeight;
+	ret.x =  (x) / divx -tolodas.x;
+	ret.y =  (screenHeight - y) / divy  -tolodas.y;
+	return ret;
 }
 
 void drawCircles()
 {
-    float r = 2.0f;
-    for (int i = 0 ; i < pointnum ; i++ ) {
-
-
-        glBegin(GL_TRIANGLE_FAN);
-        glColor3f(0.0, 0.0, 0.0);
-        glVertex2f(controlPoints[i].x, controlPoints[i].y);
-        for(int j = 0; j <= 32; j++) {
-            float ford = float(j) / 32 * r * M_PI;
-            float px = controlPoints[i].x + r * cos(ford);
-            float py = controlPoints[i].y + r * sin(ford);
-            glVertex2f(px, py);
-        }
-        glEnd();
-    }
+	float r = 2.0f;
+	for (int i = 0 ; i < pointnum ; i++ ) {
+		glColor3f(0.0, 0.0, 0.0);
+		glBegin(GL_TRIANGLE_FAN);
+		glVertex2f(controlPoints[i].x, controlPoints[i].y);
+		for(int j = 0; j <= 32; j++) {
+			float ford = float(j) / 32 * r * M_PI;
+			float px = controlPoints[i].x + r * cos(ford);
+			float py = controlPoints[i].y + r * sin(ford);
+			glVertex2f(px, py);
+		}
+		glEnd();
+	}
 }
 
 void putConvex()
 {
-    if(pointnum >= 2) {
-        int minyPoint = 0;
-        for(int i = 1; i < pointnum; i++) {
-            if(controlPoints[i].y < controlPoints[minyPoint].y) {
-                minyPoint = i;
-            }
-        }
-        Vector *burok[11];
-        int burokdb = 1;
-        burok[0] = &controlPoints[minyPoint];
-        Vector *current = burok[0];
-        bool alma = true;
-        while(alma) {
-            for(int i = 0; i < pointnum; i++) {
-                if(current != &controlPoints[i]) {
-                    Vector v = controlPoints[i] - *current;
-                    float vsize = v.Length();
-                    v.x /= vsize;
-                    v.y /= vsize;
-                    Vector n = Vector(v.y, -v.x);
-                    bool hatar = true;
-                    for(int j = 0; j < pointnum; j++) {
-                        if(j != i) {
-                            float tav = n * (controlPoints[j] - controlPoints[i]);
-                            if(tav > 0.001) {
-                                hatar = false;
-                            }
-                        }
-                    }
-                    if(hatar) {
-                        burok[burokdb++] = &controlPoints[i];
-                        current = &controlPoints[i];
-                        if(burok[0] == burok[burokdb-1]) {
-                            alma = false;
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-        glColor3f(0.5f, 1.0f, 1.0f);
-        glBegin(GL_POLYGON);
-        for(int i = 0; i < burokdb; i++) {
-            glVertex2f(burok[i]->x, burok[i]->y);
-        }
-        glEnd();
-    }
+	if(pointnum >= 2) {
+		int minyPoint = 0;
+		for(int i = 1; i < pointnum; i++) {
+			if(controlPoints[i].y < controlPoints[minyPoint].y) {
+				minyPoint = i;
+			}
+		}
+		Vector *burok[11];
+		int burokdb = 1;
+		burok[0] = &controlPoints[minyPoint];
+		Vector *current = burok[0];
+		bool alma = true;
+		while(alma) {
+			for(int i = 0; i < pointnum; i++) {
+				Vector v = controlPoints[i] - *current;
+				if(current != &controlPoints[i]) {
+					float vsize = v.Length();
+					v.x /= vsize;
+					v.y /= vsize;
+					Vector n = Vector(v.y, -v.x);
+					bool hatar = true;
+					for(int j = 0; j < pointnum; j++) {
+						if(j != i) {
+							float tav = n * (controlPoints[j] - controlPoints[i]);
+							if(tav > 0.001) {
+								hatar = false;
+							}
+						}
+					}
+					if(hatar) {
+						burok[burokdb++] = &controlPoints[i];
+						current = &controlPoints[i];
+						if(burok[0] == burok[burokdb-1] || (burok[0]->y==burok[burokdb-1]->y && burok[0]->x==burok[burokdb-1]->x)) {
+							alma = false;
+						}
+						break;
+					}
+				}
+			}
+		}
+		glColor3f(0.5f, 1.0f, 1.0f);
+		glBegin(GL_POLYGON);
+		for(int i = 0; i < burokdb; i++) {
+			glVertex2f(burok[i]->x, burok[i]->y);
+		}
+		glEnd();
+	}
 }
 
 class CatmullRom
 {
-    Vector As[4];
+		Vector As[4];
 
-    Vector A0(Vector x) {
-        return x;
-    }
+		Vector A0(Vector x) {
+			return x;
+		}
 
-    Vector A1(Vector v) {
-        return v;
-    }
+		Vector A1(Vector v) {
+			return v;
+		}
 
-    Vector A2(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
-        return (xii - xi) * 3 * (1 / pow(tii - ti, 2.0)) - (vii + vi * 2) * (1 / (tii - ti));
-    }
+		Vector A2(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
+			return (xii - xi) * 3 * (1 / pow(tii - ti, 2.0)) - (vii + vi * 2) * (1 / (tii - ti));
+		}
 
-    Vector A3(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
-        return (xi - xii) * 2 * (1 / pow(tii - ti, 3.0)) + (vii + vi) * (1 / pow(tii - ti, 2.0));
-    }
+		Vector A3(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
+			return (xi - xii) * 2 * (1 / pow(tii - ti, 3.0)) + (vii + vi) * (1 / pow(tii - ti, 2.0));
+		}
 
-    Vector V(int i) {
-        return  ((controlPoints[i+1] - controlPoints[i]) * (1 / (time[i+1] - time[i])) + (controlPoints[i] - controlPoints[i-1]) * (1 / (time[i] - time[i-1]))) * 0.5;
-    }
+		Vector V(int i) {
+			return  ((controlPoints[i+1] - controlPoints[i]) * (1 / (time[i+1] - time[i])) + (controlPoints[i] - controlPoints[i-1]) * (1 / (time[i] - time[i-1]))) * 0.5;
+		}
 
-public:
+	public:
 
-    Vector r(int i, float t) {
-        Vector r = As[0] + As[1] * (t - time[i-1]) + As[2] * pow(t - time[i-1], 2.0) + As[3] * pow(t - time[i-1], 3.0);
-        return r;
-    }
+		Vector r(int i, float t) {
+			Vector r = As[0] + As[1] * (t - time[i-1]) + As[2] * pow(t - time[i-1], 2.0) + As[3] * pow(t - time[i-1], 3.0);
+			return r;
+		}
 
-    void computeAs(int i) {
-        Vector v;
-        Vector vi;
-        if(i == 1) {
-            v = Vector(0, 0);
-        } else {
-            v = V(i - 1);
-        }
-        if(i == pointnum - 1) {
-            vi = Vector(0, 0);
-        } else {
-            vi = V(i);
-        }
+		void computeAs(int i) {
+			Vector v;
+			Vector vi;
+			if(i == 1) {
+				v = Vector(0, 0);
+			} else {
+				v = V(i - 1);
+			}
+			if(i == pointnum - 1) {
+				vi = Vector(0, 0);
+			} else {
+				vi = V(i);
+			}
 
-        As[0] = A0(controlPoints[i-1]);
-        As[1] = A1(v);
-        As[2] = A2(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
-        As[3] = A3(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
-    }
+			As[0] = A0(controlPoints[i-1]);
+			As[1] = A1(v);
+			As[2] = A2(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
+			As[3] = A3(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
+		}
 };
 
 void drawCatmullRom()
 {
-    if(pointnum >= 2) {
-        CatmullRom cr = CatmullRom();
-        int osztas = 100;
+	if(pointnum >= 2) {
+		CatmullRom cr = CatmullRom();
+		int osztas = 100;
 
-        glColor3f(0.0, 0.5, 0.0);
-        glBegin(GL_LINE_STRIP);
-        glVertex2f(controlPoints[0].x, controlPoints[0].y);
-        for(int i = 1; i < pointnum; i++) {
-            float t = time[i];
-            float tdiff = (time[i] - time[i-1]) / osztas;
-            cr.computeAs(i);
-            for(int j = 0; j < osztas; j++) {
-                t = time[i-1] + j * tdiff;
-                Vector p = cr.r(i, t);
-                //std::cout<<"i: "<<i<<" t: "<<t<<" x: "<<p.x<<" y: "<<p.y<<std::endl;
-                glVertex2f(p.x, p.y);
-            }
-        }
-        glEnd();
-    }
+		glColor3f(0.0, 0.5, 0.0);
+		glBegin(GL_LINE_STRIP);
+		glVertex2f(controlPoints[0].x, controlPoints[0].y);
+		for(int i = 1; i < pointnum; i++) {
+			float t = time[i];
+			float tdiff = (time[i] - time[i-1]) / osztas;
+			cr.computeAs(i);
+			for(int j = 0; j < osztas; j++) {
+				t = time[i-1] + j * tdiff;
+				Vector p = cr.r(i, t);
+				//std::cout<<"i: "<<i<<" t: "<<t<<" x: "<<p.x<<" y: "<<p.y<<std::endl;
+				glVertex2f(p.x, p.y);
+			}
+		}
+		glEnd();
+	}
 }
 
 
 
-void drawCatmullClark() {
+void drawCatmullClark()
+{
 
 
 }
@@ -306,90 +309,84 @@ void drawCatmullClark() {
 
 class BezierCurve
 {
-    float B(int i, float t) {
-        int n = pointnum - 1;
-        float choose = 1;
-        for(int j = 1; j <= i; j++) {
-            choose *= (float)(n - j + 1) / j;
-        }
-        return choose * pow(t, i) * pow(1 - t, n - i);
-    }
-public:
-    Vector r(float t) {
-        Vector rr(0, 0);
-        for(int i = 0; i < pointnum; i++) {
-            rr = rr + controlPoints[i] * B(i, t);
-        }
-        return rr;
-    }
+		float B(int i, float t) {
+			int n = pointnum - 1;
+			float choose = 1;
+			for(int j = 1; j <= i; j++) {
+				choose *= (float)(n - j + 1) / j;
+			}
+			return choose * pow(t, i) * pow(1 - t, n - i);
+		}
+	public:
+		Vector r(float t) {
+			Vector rr(0, 0);
+			for(int i = 0; i < pointnum; i++) {
+				rr = rr + controlPoints[i] * B(i, t);
+			}
+			return rr;
+		}
 };
 
 void drawBezier()
 {
-    if(pointnum >= 2) {
-        glColor3f(1.0, 0.0, 0.0);
-        int koz = 1000;
-        Vector endPoint;
-        BezierCurve bc = BezierCurve();
-        glBegin(GL_LINE_STRIP);
-        for(int i = 0; i < koz; i++) {
-            float t = (float)i / (float)koz;
-            endPoint = bc.r(t);
-            glVertex2f(endPoint.x, endPoint.y);
-        }
-        glEnd();
-    }
+	if(pointnum >= 2) {
+		glColor3f(1.0, 0.0, 0.0);
+		int koz = 500;
+		Vector endPoint;
+		BezierCurve bc = BezierCurve();
+		glBegin(GL_LINE_STRIP);
+		for(int i = 0; i < koz; i++) {
+			float t = (float)i / (float)koz;
+			endPoint = bc.r(t);
+			glVertex2f(endPoint.x, endPoint.y);
+		}
+		glEnd();
+	}
 }
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( )
 {
-    glViewport(0, 0, screenWidth, screenHeight);
-
-
+	glViewport(0, 0, screenWidth, screenHeight);
+    lasttime=glutGet(GLUT_ELAPSED_TIME);
+    center=&c1;
 
 }
 
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( )
 {
-    glClearColor(0.8f, 0.8f, 0.8f, 0.0f);		// torlesi szin beallitasa
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
+	glClearColor(0.8f, 0.8f, 0.8f, 0.0f);		// torlesi szin beallitasa
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
 
-    if(leftclick) {
+	if(leftclick) {
 
 
-        glMatrixMode(GL_MODELVIEW);
-        glLoadIdentity();
-        if(rightclick){
-            glTranslatef(-2*center.x/(float)camWidth, -2*center.y/(float)camHeight, 0);
-
-        }else{
-            glTranslatef(-1.0, -1.0, 0);
-
-        }
-        glScalef(2 * 1 / (float)camWidth, 2 * 1 / (float)camHeight, 1);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+        glTranslatef(-2*center->x/(float)camWidth, -2*center->y/(float)camHeight, 0);
+		glScalef(2 * 1 / (float)camWidth, 2 * 1 / (float)camHeight, 1);
 
 
 
 
-        putConvex();
-        drawBezier();
-        drawCatmullRom();
-        drawCircles();
+		putConvex();
+		drawBezier();
+		drawCatmullRom();
+		drawCircles();
 
-    }
+	}
 
-    glutSwapBuffers();     				// Buffercsere: rajzolas vege
+	glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
-    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-    if (key == ' ') space = !space;
+	if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+	if (key == ' ') space = true;
 
 }
 
@@ -402,30 +399,38 @@ void onKeyboardUp(unsigned char key, int x, int y)
 // Eger esemenyeket lekezelo fuggveny
 void onMouse(int button, int state, int x, int y)
 {
-    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {  // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
+	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {  // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
 
-        if(pointnum < 10) {
-            controlPoints[pointnum] = convCoords(x, y);
-            std::cout << controlPoints[pointnum].x << " " << controlPoints[pointnum].y << std::endl;
-            time[pointnum] = glutGet(GLUT_ELAPSED_TIME) / 100;
-            pointnum++;
-        }
-        leftclick = true;
-        glutPostRedisplay(); 						 // Ilyenkor rajzold ujra a kepet
-    } else if(button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && leftclick) {
-        float r = 2.0;
-        Vector p = convCoords(x, y);
-        for(int i = 0; i < pointnum; i++) {
-            if(pow(p.x - controlPoints[i].x, 2.0) + pow(p.y - controlPoints[i].y, 2.0) <= r * r) {
-                center = controlPoints[i];
-                rightclick = true;
-                //std::cout<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
-            }
-        }
-        if(rightclick) {
-            glutPostRedisplay();
-        }
-    }
+		if(pointnum < 10) {
+			Vector temp=convCoords(x, y);
+			controlPoints[pointnum] = temp;
+			circularcenters[pointnum].x=controlPoints[pointnum].x;
+			circularcenters[pointnum].y=controlPoints[pointnum].y-5;
+			std::cout << controlPoints[pointnum].x << " " << controlPoints[pointnum].y <<" "<<temp.x<<" "<<temp.y<< std::endl;
+			time[pointnum] = glutGet(GLUT_ELAPSED_TIME) / 100;
+			pointnum++;
+		}
+		leftclick = true;
+		glutPostRedisplay(); 						 // Ilyenkor rajzold ujra a kepet
+	} else if(button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && leftclick) {
+		float r = 2.0;
+		Vector p = convCoords(x, y);
+
+		for(int i = 0; i < pointnum; i++) {
+            std::cout<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
+			if(pow(p.x - controlPoints[i].x, 2.0) + pow(p.y - controlPoints[i].y, 2.0)-r*r<=0) {
+				tolodas.x+=center->x-controlPoints[i].x;
+				tolodas.y+=center->y-controlPoints[i].y;
+
+				center = &controlPoints[i];
+				rightclick = true;
+				std::cout<<"JOOOO"<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
+			}
+		}
+		if(rightclick) {
+			glutPostRedisplay();
+		}
+	}
 }
 
 
@@ -437,20 +442,46 @@ void onMouseMotion(int x, int y)
 }
 
 
-long lasttime = 0;
 
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( )
 {
-    long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-    int diff = currenttime - lasttime;
 
-    if(space && diff > 50) {
-        lasttime = currenttime;
+    if(space){
+        long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+        static int j[10]={0,500,0,500,0,500,0,500,0,500};
 
-        std::cout << diff << std::endl;
+        int diff = currenttime - lasttime;
+        float osztas=1000;
+        if(diff >= 5) {
+            dtime+=50;
+            lasttime = currenttime;
+            for (int i=0;i<pointnum ;i++ ){
+                Vector temp;
+                bool c=false;
+                if(center==&controlPoints[i]){
+                    temp=*center;
+                    c=true;
+                }
+                if(i%2){ //ptlan
+                    controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI);
+                    controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI);
+                }else{ //prs
+                    controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI);
+                    controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI);
+                }
+                if(c){
+                    tolodas.x+=temp.x-controlPoints[i].x;
+                    tolodas.y+=temp.y-controlPoints[i].y;
+                }
+                j[i]++;
+                //std::cout<<i<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<" "<<circularcenters[i].x<<" "<<circularcenters[i].y<<std::endl;
+            }
+
+            //std::cout <<j[pointnum-1]<<" "<< controlPoints[pointnum-1].x<<" "<< controlPoints[pointnum-1].y<< std::endl;
+            glutPostRedisplay();
+        }
     }
-
 }
 
 // ...Idaig modosithatod
@@ -459,29 +490,29 @@ void onIdle( )
 // A C++ program belepesi pontja, a main fuggvenyt mar nem szabad bantani
 int main(int argc, char **argv)
 {
-    glutInit(&argc, argv); 				// GLUT inicializalasa
-    glutInitWindowSize(600, 600);			// Alkalmazas ablak kezdeti merete 600x600 pixel
-    glutInitWindowPosition(100, 100);			// Az elozo alkalmazas ablakhoz kepest hol tunik fel
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);	// 8 bites R,G,B,A + dupla buffer + melyseg buffer
+	glutInit(&argc, argv); 				// GLUT inicializalasa
+	glutInitWindowSize(600, 600);			// Alkalmazas ablak kezdeti merete 600x600 pixel
+	glutInitWindowPosition(100, 100);			// Az elozo alkalmazas ablakhoz kepest hol tunik fel
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);	// 8 bites R,G,B,A + dupla buffer + melyseg buffer
 
-    glutCreateWindow("Grafika hazi feladat");		// Alkalmazas ablak megszuletik es megjelenik a kepernyon
+	glutCreateWindow("Grafika hazi feladat");		// Alkalmazas ablak megszuletik es megjelenik a kepernyon
 
-    glMatrixMode(GL_MODELVIEW);				// A MODELVIEW transzformaciot egysegmatrixra inicializaljuk
-    glLoadIdentity();
-    glMatrixMode(GL_PROJECTION);			// A PROJECTION transzformaciot egysegmatrixra inicializaljuk
-    glLoadIdentity();
+	glMatrixMode(GL_MODELVIEW);				// A MODELVIEW transzformaciot egysegmatrixra inicializaljuk
+	glLoadIdentity();
+	glMatrixMode(GL_PROJECTION);			// A PROJECTION transzformaciot egysegmatrixra inicializaljuk
+	glLoadIdentity();
 
-    onInitialization();					// Az altalad irt inicializalast lefuttatjuk
+	onInitialization();					// Az altalad irt inicializalast lefuttatjuk
 
-    glutDisplayFunc(onDisplay);				// Esemenykezelok regisztralasa
-    glutMouseFunc(onMouse);
-    glutIdleFunc(onIdle);
-    glutKeyboardFunc(onKeyboard);
-    glutKeyboardUpFunc(onKeyboardUp);
-    glutMotionFunc(onMouseMotion);
+	glutDisplayFunc(onDisplay);				// Esemenykezelok regisztralasa
+	glutMouseFunc(onMouse);
+	glutIdleFunc(onIdle);
+	glutKeyboardFunc(onKeyboard);
+	glutKeyboardUpFunc(onKeyboardUp);
+	glutMotionFunc(onMouseMotion);
 
-    glutMainLoop();					// Esemenykezelo hurok
+	glutMainLoop();					// Esemenykezelo hurok
 
-    return 0;
+	return 0;
 }
 
