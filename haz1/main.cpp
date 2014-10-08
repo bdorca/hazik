@@ -296,23 +296,13 @@ void drawCatmullRom()
     }
 }
 
-class CatmullClark {
 
-
-
-    Vector calcgreen(Vector v1, Vector v2) {
-        return v1 + (v2 - v1) * 0.5;
-    }
-
-    Vector calcreds() {
-
-    }
-
-};
 
 void drawCatmullClark() {
 
+
 }
+
 
 class BezierCurve
 {
@@ -369,15 +359,14 @@ void onDisplay( )
 
     if(leftclick) {
 
-        if(rightclick){
-
-        }
 
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         glTranslatef(-1.0, -1.0, 0);
-        glRotatef(0, 0, 0, 0);
         glScalef(2 * 1 / (float)camWidth, 2 * 1 / (float)camHeight, 1);
+        if(rightclick){
+
+        }
 
 
 
