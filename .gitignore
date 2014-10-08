@@ -215,7 +215,7 @@ pip-log.txt
 .mr.developer.cfg
 
 *.cpp.cbTemp
-*.depend
-*.layout
+haz1/*.depend
+haz1/*.layout
 /bin
 /obj
