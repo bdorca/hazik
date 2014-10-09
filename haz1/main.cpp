@@ -290,7 +290,6 @@ void drawCatmullRom()
 			for(int j = 0; j < osztas; j++) {
 				t = time[i-1] + j * tdiff;
 				Vector p = cr.r(i, t);
-				//std::cout<<"i: "<<i<<" t: "<<t<<" x: "<<p.x<<" y: "<<p.y<<std::endl;
 				glVertex2f(p.x, p.y);
 			}
 		}
