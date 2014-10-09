@@ -6,7 +6,7 @@
 // Tilos:
 // - mast "beincludolni", illetve mas konyvtarat hasznalni
 // - faljmuveleteket vegezni (printf is fajlmuvelet!)
-// - new operatort hivni az onInitialization függvényt kivéve, a lefoglalt adat korrekt felszabadítása nélkül
+// - new operatort hivni az onInitialization fuggvenyt kiveve, a lefoglalt adat korrekt felszabaditasa nelkul
 // - felesleges programsorokat a beadott programban hagyni
 // - tovabbi kommenteket a beadott programba irni a forrasmegjelolest kommentjeit kiveve
 // ---------------------------------------------------------------------------------------------
@@ -159,8 +159,9 @@ void drawCircles()
 		glColor3f(0.0, 0.0, 0.0);
 		glBegin(GL_TRIANGLE_FAN);
 		glVertex2f(controlPoints[i].x, controlPoints[i].y);
-		for(int j = 0; j <= 32; j++) {
-			float ford = float(j) / 32 * r * M_PI;
+		float osztas=100;
+		for(int j = 0; j <= osztas; j++) {
+			float ford = j / osztas * 2.0 * M_PI;
 			float px = controlPoints[i].x + r * cos(ford);
 			float py = controlPoints[i].y + r * sin(ford);
 			glVertex2f(px, py);
@@ -348,9 +349,7 @@ class CatmullClark
 		void draw() {
 			glColor3f(0.0,0.0,1.0);
 			glBegin(GL_LINE_STRIP);
-			glVertex2f(controlPoints[0].x,controlPoints[0].y);
 			for(int i=0; i<greenpointnum; i++) {
-
 				glVertex2f(greenPoints[i].x,greenPoints[i].y);
 			}
 			glEnd();

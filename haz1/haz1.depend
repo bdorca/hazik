@@ -229,7 +229,7 @@
 	<GL/gl.h>
 	<GL/glu.h>
 
-1412870770 source:c:\bme\5.felev\grafika\hazik\haz1\main.cpp
+1412873732 source:c:\bme\5.felev\grafika\hazik\haz1\main.cpp
 	<math.h>
 	<stdlib.h>
 	<OpenGL/gl.h>
@@ -239,5 +239,4 @@
 	<GL/gl.h>
 	<GL/glu.h>
 	<GL/glut.h>
-	<iostream>
 
