@@ -185,6 +185,7 @@ void putConvex()
 		Vector *current = burok[0];
 		std::cout<<current->x<<" "<<current->y<<std::endl;
 		bool alma = true;
+
 		while(alma && burokdb<=pointnum+1) {
 			for(int i = 0; i < pointnum; i++) {
 				Vector v = controlPoints[i] - *current;
@@ -304,9 +305,9 @@ void drawCatmullRom()
 class CatmullClark
 {
 
-		Vector greenPoints[20];
+		Vector greenPoints[160];
 		int greenpointnum;
-
+        int volt;
 		void zold(Vector* a, Vector b) {
 			*a=*a+(b-*a)*0.5;
 		}
@@ -318,22 +319,33 @@ class CatmullClark
 	public:
 
 		CatmullClark() {
-			greenpointnum=1;
+			volt=0;
+			greenpointnum=0;
 			for( int i=0; i<pointnum; i++) {
-				greenPoints[greenpointnum]=controlPoints[i];
-				greenPoints[greenpointnum-1]=controlPoints[i];
-				greenpointnum+=2;
+				greenPoints[i]=controlPoints[i];
+				greenpointnum++;
 			}
-            greenpointnum--;
-            std::cout<<greenpointnum<<std::endl;
 		}
 
 		void calcCC() {
+
+		    if(greenpointnum<=80){
+                for(int i= greenpointnum*2-1;i>0;i-=2){
+                    greenPoints[i]=greenPoints[(i-1)/2];
+                    greenPoints[i-1]=greenPoints[(i-1)/2];
+                }
+                greenpointnum*=2;
+		    }
+            std::cout<<greenpointnum<<std::endl;
 			for(int i=2; i<greenpointnum; i+=2) {
 				zold(&greenPoints[i-1],greenPoints[i]);
 			}
 			for(int i=2; i<greenpointnum-1; i+=2) {
 				red(&greenPoints[i], greenPoints[i-1],greenPoints[i+1]);
+			}
+            volt++;
+			if(volt<4){
+                calcCC();
 			}
 
 		}
@@ -343,11 +355,7 @@ class CatmullClark
 			glBegin(GL_LINE_STRIP);
 			glVertex2f(controlPoints[0].x,controlPoints[0].y);
 			for(int i=0; i<greenpointnum; i++) {
-                if(i%2){
-                    glColor3f(0.0,1.0,0.0);
-                }else{
-                    glColor3f(1.0,0.0,0.0);
-                }
+
 				glVertex2f(greenPoints[i].x,greenPoints[i].y);
 			}
 			glEnd();
@@ -360,8 +368,6 @@ void drawCatmullClark()
 	if(pointnum>=2) {
 		CatmullClark cc=CatmullClark();
 		cc.calcCC();
-//		cc.calcCC();
-//		cc.calcCC();
 		cc.draw();
 	}
 }
