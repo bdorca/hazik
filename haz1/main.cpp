@@ -61,7 +61,6 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Innentol modosithatod...
-#include <iostream>
 //--------------------------------------------------------
 // 3D Vektor
 //--------------------------------------------------------
@@ -123,7 +122,7 @@ struct Color {
 
 
 
-const int screenWidth = 600;	// alkalmazás ablak felbontása
+const int screenWidth = 600;
 const int screenHeight = 600;
 const int camHeight = 58;
 const int camWidth = 68;
@@ -183,7 +182,6 @@ void putConvex()
 		int burokdb = 1;
 		burok[0] = &controlPoints[minyPoint];
 		Vector *current = burok[0];
-		std::cout<<current->x<<" "<<current->y<<std::endl;
 		bool alma = true;
 
 		while(alma && burokdb<=pointnum+1) {
@@ -207,7 +205,6 @@ void putConvex()
 
 						burok[burokdb++] = &controlPoints[i];
 						current = &controlPoints[i];
-						std::cout<<current->x<<" "<<current->y<<std::endl;
 						if(burok[0] == burok[burokdb-1]) {
 							alma = false;
 						}
@@ -216,7 +213,6 @@ void putConvex()
 				}
 			}
 		}
-		std::cout<<std::endl;
 		glColor3f(0.5f, 1.0f, 1.0f);
 		glBegin(GL_POLYGON);
 		for(int i = 0; i < burokdb; i++) {
@@ -284,7 +280,7 @@ void drawCatmullRom()
 		CatmullRom cr = CatmullRom();
 		int osztas = 100;
 
-		glColor3f(0.0, 0.5, 0.0);
+		glColor3f(0.0, 1.0, 0.0);
 		glBegin(GL_LINE_STRIP);
 		glVertex2f(controlPoints[0].x, controlPoints[0].y);
 		for(int i = 1; i < pointnum; i++) {
@@ -307,7 +303,7 @@ class CatmullClark
 
 		Vector greenPoints[160];
 		int greenpointnum;
-        int volt;
+		int volt;
 		void zold(Vector* a, Vector b) {
 			*a=*a+(b-*a)*0.5;
 		}
@@ -329,23 +325,23 @@ class CatmullClark
 
 		void calcCC() {
 
-		    if(greenpointnum<=80){
-                for(int i= greenpointnum*2-1;i>0;i-=2){
-                    greenPoints[i]=greenPoints[(i-1)/2];
-                    greenPoints[i-1]=greenPoints[(i-1)/2];
-                }
-                greenpointnum*=2;
-		    }
-            std::cout<<greenpointnum<<std::endl;
+			if(greenpointnum<=80) {
+				for(int i= greenpointnum*2-1; i>0; i-=2) {
+					greenPoints[i]=greenPoints[(i-1)/2];
+					greenPoints[i-1]=greenPoints[(i-1)/2];
+				}
+				greenpointnum*=2;
+			}
 			for(int i=2; i<greenpointnum; i+=2) {
 				zold(&greenPoints[i-1],greenPoints[i]);
 			}
 			for(int i=2; i<greenpointnum-1; i+=2) {
 				red(&greenPoints[i], greenPoints[i-1],greenPoints[i+1]);
 			}
-            volt++;
-			if(volt<4){
-                calcCC();
+
+			volt++;
+			if(volt<4) {
+				calcCC();
 			}
 
 		}
@@ -473,7 +469,6 @@ void onMouse(int button, int state, int x, int y)
 			controlPoints[pointnum] = temp;
 			circularcenters[pointnum].x=controlPoints[pointnum].x;
 			circularcenters[pointnum].y=controlPoints[pointnum].y-5;
-			std::cout << controlPoints[pointnum].x << " " << controlPoints[pointnum].y <<" "<<temp.x<<" "<<temp.y<< std::endl;
 			time[pointnum] = glutGet(GLUT_ELAPSED_TIME) / 100;
 			pointnum++;
 		}
@@ -484,14 +479,12 @@ void onMouse(int button, int state, int x, int y)
 		Vector p = convCoords(x, y);
 
 		for(int i = 0; i < pointnum; i++) {
-			std::cout<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
 			if(pow(p.x - controlPoints[i].x, 2.0) + pow(p.y - controlPoints[i].y, 2.0)-r*r<=0) {
 				tolodas.x+=center->x-controlPoints[i].x;
 				tolodas.y+=center->y-controlPoints[i].y;
 
 				center = &controlPoints[i];
 				rightclick = true;
-				std::cout<<"JOOOO"<<p.x<<" "<<p.y<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<std::endl;
 			}
 		}
 		if(rightclick) {
@@ -529,10 +522,10 @@ void onIdle( )
 					temp=*center;
 					c=true;
 				}
-				if(i%2) { //ptlan
+				if(i%2) {
 					controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI);
 					controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI);
-				} else { //prs
+				} else {
 					controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI);
 					controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI);
 				}
@@ -541,10 +534,8 @@ void onIdle( )
 					tolodas.y+=temp.y-controlPoints[i].y;
 				}
 				j[i]++;
-				//std::cout<<i<<" "<<controlPoints[i].x<<" "<<controlPoints[i].y<<" "<<circularcenters[i].x<<" "<<circularcenters[i].y<<std::endl;
 			}
 
-			//std::cout <<j[pointnum-1]<<" "<< controlPoints[pointnum-1].x<<" "<< controlPoints[pointnum-1].y<< std::endl;
 			glutPostRedisplay();
 		}
 	}
