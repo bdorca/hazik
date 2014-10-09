@@ -301,12 +301,69 @@ void drawCatmullRom()
 	}
 }
 
+class CatmullClark
+{
 
+		Vector greenPoints[20];
+		int greenpointnum;
+
+		void zold(Vector* a, Vector b) {
+			*a=*a+(b-*a)*0.5;
+		}
+
+		void red(Vector* b, Vector a, Vector c) {
+			*b=(a+c)*0.25+(*b)*0.5;
+		}
+
+	public:
+
+		CatmullClark() {
+			greenpointnum=1;
+			for( int i=0; i<pointnum; i++) {
+				greenPoints[greenpointnum]=controlPoints[i];
+				greenPoints[greenpointnum-1]=controlPoints[i];
+				greenpointnum+=2;
+			}
+            greenpointnum--;
+            std::cout<<greenpointnum<<std::endl;
+		}
+
+		void calcCC() {
+			for(int i=2; i<greenpointnum; i+=2) {
+				zold(&greenPoints[i-1],greenPoints[i]);
+			}
+			for(int i=2; i<greenpointnum-1; i+=2) {
+				red(&greenPoints[i], greenPoints[i-1],greenPoints[i+1]);
+			}
+
+		}
+
+		void draw() {
+			glColor3f(0.0,0.0,1.0);
+			glBegin(GL_LINE_STRIP);
+			glVertex2f(controlPoints[0].x,controlPoints[0].y);
+			for(int i=0; i<greenpointnum; i++) {
+                if(i%2){
+                    glColor3f(0.0,1.0,0.0);
+                }else{
+                    glColor3f(1.0,0.0,0.0);
+                }
+				glVertex2f(greenPoints[i].x,greenPoints[i].y);
+			}
+			glEnd();
+		}
+
+};
 
 void drawCatmullClark()
 {
-
-
+	if(pointnum>=2) {
+		CatmullClark cc=CatmullClark();
+		cc.calcCC();
+//		cc.calcCC();
+//		cc.calcCC();
+		cc.draw();
+	}
 }
 
 
@@ -377,6 +434,7 @@ void onDisplay( )
 		putConvex();
 		drawBezier();
 		drawCatmullRom();
+		drawCatmullClark();
 		drawCircles();
 
 	}
