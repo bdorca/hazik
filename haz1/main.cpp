@@ -124,8 +124,8 @@ struct Color {
 
 const int screenWidth = 600;
 const int screenHeight = 600;
-const int camHeight = 58;
-const int camWidth = 68;
+const int camHeight = 68;
+const int camWidth = 58;
 
 bool leftclick = false;
 bool rightclick = false;
@@ -507,10 +507,10 @@ void onIdle( )
 
 	if(space) {
 		long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-		static int j[10]= {0,500,0,500,0,500,0,500,0,500};
+		static int j[10]= {0,250,0,250,0,250,0,250,0,250};
 
 		int diff = currenttime - lasttime;
-		float osztas=1000;
+		float osztas=500;
 		if(diff >= 5) {
 			lasttime = currenttime;
 			for (int i=0; i<pointnum ; i++ ) {
