@@ -134,7 +134,7 @@ bool space = false;
 long lasttime = 0;
 
 Vector *center;
-Vector c1=Vector(camWidth/2,camHeight/2);
+Vector c1;
 Vector tolodas;
 int pointnum = 0;
 Vector controlPoints[10];
@@ -409,6 +409,7 @@ void onInitialization( )
 {
 	glViewport(0, 0, screenWidth, screenHeight);
 	lasttime=glutGet(GLUT_ELAPSED_TIME);
+	c1=Vector(camWidth/2,camHeight/2);
 	center=&c1;
 
 }
@@ -472,7 +473,7 @@ void onMouse(int button, int state, int x, int y)
 		}
 		leftclick = true;
 		glutPostRedisplay(); 						 // Ilyenkor rajzold ujra a kepet
-	} else if(button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN && leftclick) {
+	} else if(button == GLUT_RIGHT_BUTTON && state == GLUT_DOWN ) {
 		float r = 2.0;
 		Vector p = convCoords(x, y);
 
