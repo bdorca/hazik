@@ -468,7 +468,7 @@ void onMouse(int button, int state, int x, int y)
 			controlPoints[pointnum] = temp;
 			circularcenters[pointnum].x=controlPoints[pointnum].x;
 			circularcenters[pointnum].y=controlPoints[pointnum].y-5;
-			time[pointnum] = glutGet(GLUT_ELAPSED_TIME) / 100;
+			time[pointnum] = glutGet(GLUT_ELAPSED_TIME) / 1000;
 			pointnum++;
 		}
 		leftclick = true;
@@ -508,11 +508,11 @@ void onIdle( )
 
 	if(space) {
 		long currenttime = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-		static int j[10]= {0,250,0,250,0,250,0,250,0,250};
+		static int j[10]= {0,25,0,25,0,25,0,25,0,25};
 
 		int diff = currenttime - lasttime;
-		float osztas=500;
-		if(diff >= 5) {
+		float osztas=100;
+		if(diff >= 50) {
 			lasttime = currenttime;
 			for (int i=0; i<pointnum ; i++ ) {
 				Vector temp;
@@ -522,11 +522,11 @@ void onIdle( )
 					c=true;
 				}
 				if(i%2) {
-					controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI);
-					controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI);
+					controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI*2);
+					controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI*2);
 				} else {
-					controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI);
-					controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI);
+					controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI*2);
+					controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI*2);
 				}
 				if(c) {
 					tolodas.x+=temp.x-controlPoints[i].x;
@@ -535,9 +535,10 @@ void onIdle( )
 				j[i]++;
 			}
 
-			glutPostRedisplay();
+
 		}
 	}
+	glutPostRedisplay();
 }
 
 // ...Idaig modosithatod
