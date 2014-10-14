@@ -408,7 +408,6 @@ void drawBezier()
 void onInitialization( )
 {
 	glViewport(0, 0, screenWidth, screenHeight);
-	lasttime=glutGet(GLUT_ELAPSED_TIME);
 	c1=Vector(camWidth/2,camHeight/2);
 	center=&c1;
 
@@ -448,7 +447,10 @@ void onDisplay( )
 void onKeyboard(unsigned char key, int x, int y)
 {
 	if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-	if (key == ' ') space = true;
+	if (key == ' '){
+        space = true;
+        lasttime=glutGet(GLUT_ELAPSED_TIME);
+	}
 
 }
 
@@ -501,7 +503,6 @@ void onMouseMotion(int x, int y)
 }
 
 
-
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( )
 {
@@ -513,32 +514,33 @@ void onIdle( )
 		int diff = currenttime - lasttime;
 		float osztas=100;
 		if(diff >= 50) {
+			int db=diff/50; //
 			lasttime = currenttime;
-			for (int i=0; i<pointnum ; i++ ) {
-				Vector temp;
-				bool c=false;
-				if(center==&controlPoints[i]) {
-					temp=*center;
-					c=true;
+				for (int i=0; i<pointnum ; i++ ) {
+					j[i]+=db-1;
+					Vector temp;
+					bool c=false;
+					if(center==&controlPoints[i]) {
+						temp=*center;
+						c=true;
+					}
+					if(i%2) {
+						controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI*2);
+						controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI*2);
+					} else {
+						controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI*2);
+						controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI*2);
+					}
+					if(c) {
+						tolodas.x+=temp.x-controlPoints[i].x;
+						tolodas.y+=temp.y-controlPoints[i].y;
+					}
+					j[i]++;
 				}
-				if(i%2) {
-					controlPoints[i].x=circularcenters[i].x+5*cos(j[i]/osztas*M_PI*2);
-					controlPoints[i].y=circularcenters[i].y+5*sin(j[i]/osztas*M_PI*2);
-				} else {
-					controlPoints[i].x=circularcenters[i].x+5*sin(j[i]/osztas*M_PI*2);
-					controlPoints[i].y=circularcenters[i].y+5*cos(j[i]/osztas*M_PI*2);
-				}
-				if(c) {
-					tolodas.x+=temp.x-controlPoints[i].x;
-					tolodas.y+=temp.y-controlPoints[i].y;
-				}
-				j[i]++;
-			}
-
-
+			glutPostRedisplay();
 		}
 	}
-	glutPostRedisplay();
+
 }
 
 // ...Idaig modosithatod
