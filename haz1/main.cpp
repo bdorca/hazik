@@ -447,7 +447,7 @@ void onDisplay( )
 void onKeyboard(unsigned char key, int x, int y)
 {
 	if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-	if (key == ' ') {
+	if (key == ' ' && !space) {
 		space = true;
 		lasttime=glutGet(GLUT_ELAPSED_TIME);
 	}
