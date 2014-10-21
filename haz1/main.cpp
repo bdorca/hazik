@@ -236,15 +236,15 @@ class CatmullRom
 		}
 
 		Vector A2(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
-			return (xii - xi) * 3 * (1 / pow(tii - ti, 2.0)) - (vii + vi * 2) * (1 / (tii - ti));
+			return (xii - xi) * 3 * (1.0 / pow(tii - ti, 2.0)) - (vii + vi * 2) * (1.0 / (tii - ti));
 		}
 
 		Vector A3(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
-			return (xi - xii) * 2 * (1 / pow(tii - ti, 3.0)) + (vii + vi) * (1 / pow(tii - ti, 2.0));
+			return (xi - xii) * 2 * (1.0 / pow(tii - ti, 3.0)) + (vii + vi) * (1.0 / pow(tii - ti, 2.0));
 		}
 
 		Vector V(int i) {
-			return  ((controlPoints[i+1] - controlPoints[i]) * (1 / (time[i+1] - time[i])) + (controlPoints[i] - controlPoints[i-1]) * (1 / (time[i] - time[i-1]))) * 0.5;
+			return  ((controlPoints[i+1] - controlPoints[i]) * (1.0 / (time[i+1] - time[i])) + (controlPoints[i] - controlPoints[i-1]) * (1.0 / (time[i] - time[i-1]))) * 0.5;
 		}
 
 	public:
@@ -286,7 +286,7 @@ void drawCatmullRom()
 		glVertex2f(controlPoints[0].x, controlPoints[0].y);
 		for(int i = 1; i < pointnum; i++) {
 			float t = time[i];
-			float tdiff = (time[i] - time[i-1]) / osztas;
+			float tdiff = (float) (time[i] - time[i-1]) / (float) osztas;
 			cr.computeAs(i);
 			for(int j = 0; j < osztas; j++) {
 				t = time[i-1] + j * tdiff;
