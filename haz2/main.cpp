@@ -118,11 +118,21 @@ struct Color {
 	Color operator*(float a) {
 		return Color(r * a, g * a, b * a);
 	}
+    Color operator/(float a) {
+		return Color(r / a, g / a, b / a);
+	}
 	Color operator*(const Color& c) {
 		return Color(r * c.r, g * c.g, b * c.b);
 	}
 	Color operator+(const Color& c) {
 		return Color(r + c.r, g + c.g, b + c.b);
+	}
+    Color operator-(const Color& c) {
+		return Color(r - c.r, g - c.g, b - c.b);
+	}
+
+	Color normalize() {
+		return Color(r<1.0f?(r>0.0f?r:0.0f):1.0f,g<1.0f?(g>0.0f?g:0.0f):1.0f,b<1.0f?(b>0.0f?b:0.0f):1.0f);
 	}
 };
 const float epsilon=0.000001;
@@ -161,6 +171,20 @@ struct Ray {
 struct Light {
 	Color color;
 	Vector pos;
+
+	Light(Color c=Color(0,0,0), Vector p=Vector(0,0,0)) {
+		color=c;
+		pos=p;
+	}
+
+	Color getColor(Intersection inter) {
+		Vector tav=pos-inter.pos;
+		float s=pow(1/tav.Length(),2.0);
+		float intensity =((inter.normal* tav.normalize())>0?(inter.normal* tav.normalize()): 0.0f);
+		Color ret=color*s*intensity;
+		return ret;
+	}
+
 };
 
 struct Surface {
@@ -184,8 +208,9 @@ struct Scene {
 	int objectnum;
 	int lightnum;
 	Color image[screenWidth*screenHeight];	// egy alkalmazás ablaknyi kép
-
+    Color La;
 	Scene() {
+		La=Color(0.5f, 1.0f, 1.0f);
 		objectnum=0;
 		lightnum=0;
 	}
@@ -194,7 +219,7 @@ struct Scene {
 	}
 
 	Color trace(Ray r, int iter) {
-		Color retColor=Color(0.5f, 1.0f, 1.0f);
+		Color retColor=La;
 		Intersection i = intersectAll(r);
 		if (i.objectID != -1) {
 			retColor = objects[i.objectID]->surface->getColor(i, r,
@@ -243,6 +268,8 @@ struct Camera {
 	Vector up;
 	Vector right;
 
+	Camera() {}
+
 	Camera(Vector e, Vector l, Vector u) {
 		eye=e;
 		lookat=(l-eye).normalize();
@@ -262,7 +289,7 @@ struct Camera {
 
 	Color pixel(int x, int y) {
 		Vector p=lookat + right * ((2.0f * (x + 0.5f)) /screenWidth - 1.0f)
-                        + up * ((2.0f * (y + 0.5f)) /screenHeight - 1.0f);
+		         + up * ((2.0f * (y + 0.5f)) /screenHeight - 1.0f);
 		Ray r=Ray(eye,(p-eye).normalize());
 		//std::cout<<x<<" "<<y<<" ; "<<r.start.x<<" "<<r.start.y<<" "<<r.start.z<<" ; "<<r.dir.x<<" "<<r.dir.y<<" "<<r.dir.z<<std::endl;
 		Color retColor=scene.trace(r, 0);
@@ -271,16 +298,39 @@ struct Camera {
 
 };
 
-Camera camera=Camera(Vector(0, 2, -2), Vector(0, 0,0), Vector(0, 1, 0));
+Camera camera;
 
 
 
 
 struct DiffuseSurface :public Surface {
+	Color  kd;
+	Color ks;
+	float n;
+	DiffuseSurface(Color k=Color(1,1,1), Color s=Color(1,1,1)) {
+		kd=k; // / M_PI;
+		n=10;
+		ks=s;// *(n + 2) / M_PI / 2.0;
 
-	Color getColor(Intersection inter, Ray r, Light* lights,
-	               int lightnum, int rekurzio) {
-		if(inter.pos.x<-0.99) {
+	}
+
+	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+		Color Lref;
+		Color ka=Color(0.1,0.1,0.1);
+		Lref=Lref+scene.La*ka;
+		for(int i=0; i<lightnum; i++) {
+            //kd=Color(1,1,1)*4*fabs(2*inter.pos.x-inter.pos.z)/M_PI;
+			float costheta = inter.normal * lights[i].pos;
+			if (costheta < 0) return Color(0, 0, 0);
+			Lref= Lref+ lights[i].getColor(inter) * kd * costheta;		// diffuse reflection
+			Vector H =(lights[i].pos + r.start).normalize();
+			float cosdelta=inter.normal*H;
+			if (cosdelta < 0) return Lref;
+			Lref = Lref +
+			       lights[i].getColor(inter) * ks * pow(cosdelta, n);	// glossy reflection
+		}
+		return Lref.normalize();
+		/*if(inter.pos.x<-0.99) {
 			return Color(1,0,0);
 		}
 		if(inter.pos.x>0.99) {
@@ -292,7 +342,7 @@ struct DiffuseSurface :public Surface {
 		if(inter.pos.z>0.99 ) {
 			return Color(0,0,0);
 		}
-		return Color(0.0,1.0,0.0);
+		return Color(0.0,1.0,0.0);*/
 	}
 };
 
@@ -315,7 +365,7 @@ struct Floor :public Object {
 		normal=n;
 		tolas=t;
 	}
-
+	Floor() {}
 	Intersection intersect(Ray r) {
 		Vector sarok[4];
 		sarok[0]=v+tolas;
@@ -360,13 +410,31 @@ struct Paraboloid :public Object {
 
 };
 
+//--------------------------------------------
+DiffuseSurface ds;
+Floor flor;
+Light light1;
+Light light2;
+Light light3;
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( )
 {
 	glViewport(0, 0, screenWidth, screenHeight);
-	DiffuseSurface ds;
-	Floor floor=Floor(&ds,Vector(0,0,0),Vector(0,1,0));
-	scene.addObject(&floor);
+
+	camera=Camera(Vector(0, 2, -3), Vector(0, 0,0), Vector(0, 1, 0));
+
+	ds=DiffuseSurface();
+	flor=Floor(&ds,Vector(0,0,0),Vector(0,1,0));
+
+	scene.addObject(&flor);
+
+	light1=Light(Color(1,0,0),Vector(1,2,0));
+	light2=Light(Color(0,0,1),Vector(-1,2,-1));
+	light3=Light(Color(0,1,0),Vector(-1,2,1));
+
+	scene.addLight(light1);
+	scene.addLight(light2);
+	scene.addLight(light3);
 	camera.picture();
 
 }
@@ -374,7 +442,7 @@ void onInitialization( )
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( )
 {
-	glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
+	glClearColor(0,0,0,0);		// torlesi szin beallitasa
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
 	scene.render();
@@ -386,7 +454,10 @@ void onDisplay( )
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
+    static int a=1;
 	if (key == 'd') {
+		camera=Camera(Vector(0, 2, -3), Vector(0, 0,0), Vector(0, 1, 0));
+		camera.picture();
 		glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
 
 	}
@@ -403,7 +474,8 @@ void onKeyboardUp(unsigned char key, int x, int y)
 void onMouse(int button, int state, int x, int y)
 {
 	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)   // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
-		glutPostRedisplay( ); 						 // Ilyenkor rajzold ujra a kepet
+		camera.picture();
+	glutPostRedisplay( ); 						 // Ilyenkor rajzold ujra a kepet
 }
 
 // Eger mozgast lekezelo fuggveny
