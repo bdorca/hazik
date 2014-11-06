@@ -80,6 +80,9 @@ struct Vector {
 	Vector operator*(float a) {
 		return Vector(x * a, y * a, z * a);
 	}
+	Vector operator/(float a) {
+		return Vector(x / a, y / a, z / a);
+	}
 	Vector operator+(const Vector& v) {
 		return Vector(x + v.x, y + v.y, z + v.z);
 	}
@@ -89,6 +92,11 @@ struct Vector {
 	float operator*(const Vector& v) { 	// dot product
 		return (x * v.x + y * v.y + z * v.z);
 	}
+
+	float operator/(const Vector& v) {
+		return (x / v.x + y / v.y + z / v.z);
+	}
+
 	Vector operator%(const Vector& v) { 	// cross product
 		return Vector(y*v.z-z*v.y, z*v.x - x*v.z, x*v.y - y*v.x);
 	}
@@ -118,43 +126,67 @@ struct Color {
 	Color operator*(float a) {
 		return Color(r * a, g * a, b * a);
 	}
-    Color operator/(float a) {
+	Color operator/(float a) {
 		return Color(r / a, g / a, b / a);
 	}
 	Color operator*(const Color& c) {
 		return Color(r * c.r, g * c.g, b * c.b);
 	}
+	Color operator/(const Color& c) {
+		return Color(r / c.r, g / c.g, b / c.b);
+	}
 	Color operator+(const Color& c) {
 		return Color(r + c.r, g + c.g, b + c.b);
 	}
-    Color operator-(const Color& c) {
+	Color operator-(const Color& c) {
 		return Color(r - c.r, g - c.g, b - c.b);
 	}
 
-	Color normalize() {
+	Color operator-(float a) {
+		return Color(r-a,g-a,b-a);
+	}
+
+	Color operator+(float a) {
+		return Color(r+a,g+a,b+a);
+	}
+
+	Color tonemap() {
+		float I=0.21*r + 0.72*g + 0.07*b;
+		float D=I/(I+1);
+		return (*this*(I/D)).saturate();
+	}
+
+	Color saturate() {
 		return Color(r<1.0f?(r>0.0f?r:0.0f):1.0f,g<1.0f?(g>0.0f?g:0.0f):1.0f,b<1.0f?(b>0.0f?b:0.0f):1.0f);
 	}
 };
+const float FLT_MAX=1048576.1048576;
 const float epsilon=0.000001;
+const float epsilon2=0.0001;
+int dmax=1;
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
 
+//a struktura kibovitett valtozata ennek-> https://wiki.sch.bme.hu/Sz%C3%A1m%C3%ADt%C3%B3g%C3%A9pes_grafika_h%C3%A1zi_feladat_tutorial#Hogyan_k.C3.B6vess.C3.BCk_a_sugarakat.3F
 struct Intersection {
 	bool talalt;
 	Vector pos, normal;
 	int objectID;
+	float teto;
 	Intersection() {
 		objectID=-1;
 		talalt=false;
 		pos=Vector(0,0);
 		normal=Vector(0,0);
+		teto=false;
 	}
 
-	Intersection(Vector p, Vector n, bool t, int o=-1) {
+	Intersection(Vector p, Vector n, bool t, bool tet=false, int o=-1) {
 		pos=p;
 		normal=n;
 		talalt=t;
 		objectID=o;
+		teto=tet;
 	}
 };
 
@@ -162,6 +194,9 @@ struct Intersection {
 struct Ray {
 	Vector start;
 	Vector dir;
+
+	Ray() {}
+
 	Ray(Vector s, Vector d) {
 		start=s;
 		dir=d;
@@ -182,7 +217,7 @@ struct Light {
 		float s=pow(1/tav.Length(),2.0);
 		float intensity =((inter.normal* tav.normalize())>0?(inter.normal* tav.normalize()): 0.0f);
 		Color ret=color*s*intensity;
-		return ret;
+		return ret.tonemap();
 	}
 
 };
@@ -208,7 +243,7 @@ struct Scene {
 	int objectnum;
 	int lightnum;
 	Color image[screenWidth*screenHeight];	// egy alkalmazás ablaknyi kép
-    Color La;
+	Color La;
 	Scene() {
 		La=Color(0.5f, 1.0f, 1.0f);
 		objectnum=0;
@@ -220,6 +255,8 @@ struct Scene {
 
 	Color trace(Ray r, int iter) {
 		Color retColor=La;
+		if(iter>dmax) return retColor;
+
 		Intersection i = intersectAll(r);
 		if (i.objectID != -1) {
 			retColor = objects[i.objectID]->surface->getColor(i, r,
@@ -232,13 +269,13 @@ struct Scene {
 
 	Intersection intersectAll(Ray r) {
 		Intersection it;
-		float FLT_MAX=4096;
-		float mintav=0;
+
+		float mintav=FLT_MAX;
 		for(int i=0; i<objectnum; i++) {
 			Intersection tnew = objects[i]->intersect(r);
 			float tav = (tnew.pos - r.start).Length();
 
-			if(tnew.talalt &&(tav<mintav || it.objectID==-1) && tav<FLT_MAX)  {
+			if(tnew.talalt &&(tav<mintav || it.objectID==-1))  {
 				it = tnew;
 				it.objectID=i;
 				mintav=tav;
@@ -275,8 +312,8 @@ struct Camera {
 		lookat=(l-eye).normalize();
 		float fov=120;
 		float meret = tan((fov*M_PI/180)/2); //ezt at kell irni!!!!!!!!!!!!!!!!!!!!
-		right=(((lookat-eye).normalize())%u).normalize()*meret;
-		up=(right%((lookat-eye).normalize())).normalize()*meret;
+		right=(lookat%u).normalize()*meret;
+		up=(right%lookat).normalize()*meret;
 	}
 
 	void picture() {
@@ -307,50 +344,133 @@ struct DiffuseSurface :public Surface {
 	Color  kd;
 	Color ks;
 	float n;
-	DiffuseSurface(Color k=Color(1,1,1), Color s=Color(1,1,1)) {
-		kd=k; // / M_PI;
-		n=10;
-		ks=s;// *(n + 2) / M_PI / 2.0;
+	DiffuseSurface(Color k=Color(1,0.5,1), Color s=Color(1,1,1)) {
+		kd=k;// / M_PI;
+		n=100;
+		ks=s *(n + 2) / M_PI / 2.0;
 
 	}
 
 	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
 		Color Lref;
-		Color ka=Color(0.1,0.1,0.1);
+		Color kdx=kd;
+		//Color kdx=kd*(fabs(sin(inter.pos.x*2*M_PI)*sin(inter.pos.z*2*M_PI)));
+		Color ka=kd/M_PI;
 		Lref=Lref+scene.La*ka;
 		for(int i=0; i<lightnum; i++) {
-            //kd=Color(1,1,1)*4*fabs(2*inter.pos.x-inter.pos.z)/M_PI;
-			float costheta = inter.normal * lights[i].pos;
-			if (costheta < 0) return Color(0, 0, 0);
-			Lref= Lref+ lights[i].getColor(inter) * kd * costheta;		// diffuse reflection
-			Vector H =(lights[i].pos + r.start).normalize();
-			float cosdelta=inter.normal*H;
-			if (cosdelta < 0) return Lref;
-			Lref = Lref +
-			       lights[i].getColor(inter) * ks * pow(cosdelta, n);	// glossy reflection
+			Vector sh= (lights[i].pos-inter.pos).normalize();
+			Ray shadowR(inter.pos+(sh*epsilon2),sh);
+			Intersection shadow=scene.intersectAll(shadowR);
+			if(shadow.talalt) {
+				//std::cout<<"sht "<<shadow.pos.x<<" "<<shadow.pos.y<<" "<<shadow.pos.z<<std::endl;
+			}
+			if(!shadow.talalt ||(shadowR.start - shadow.pos).Length()> (shadowR.start - lights[i].pos).Length()) {
+				float costheta = inter.normal * lights[i].pos;
+				if (costheta < 0) return Color(0, 0, 0);
+				Lref= Lref+ lights[i].getColor(inter) * kdx * costheta;		// diffuse reflection
+				Vector H =(lights[i].pos + r.start).normalize();
+				float cosdelta=inter.normal*H;
+				if (cosdelta < 0) return Lref;
+				Lref = Lref +
+				       lights[i].getColor(inter) * ks * pow(cosdelta, n);	// glossy reflection
+			}
 		}
-		return Lref.normalize();
-		/*if(inter.pos.x<-0.99) {
-			return Color(1,0,0);
-		}
-		if(inter.pos.x>0.99) {
-			return Color(0.5,0.5,0.5);
-		}
-		if(inter.pos.z<-0.99 ) {
-			return Color(0,0,1);
-		}
-		if(inter.pos.z>0.99 ) {
-			return Color(0,0,0);
-		}
-		return Color(0.0,1.0,0.0);*/
+		return Lref;
+//		if(inter.pos.x<0) {
+//			return Color(1,0,1);
+//		}
+//		if(inter.pos.x>0) {
+//			return Color(1,1,0);
+//            std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
+//
+//		}
+//		if(inter.pos.z<-0.99 ) {
+//			return Color(0,0,1);
+//		}
+//		if(inter.pos.z>0.99 ) {
+//			return Color(0,0,0);
+//		}
+//		return Color(0.0,1.0,0.0);
 	}
+
 };
 
 struct ReflectionSurface :public Surface {
+	Color F0;
+	ReflectionSurface() {}
+	ReflectionSurface(Color n, Color k) {
+		F0=((n - 1) * (n - 1) + k * k) / ((n + 1) * (n + 1) + k * k);
+	}
+
+
+	Color Fresnel(Vector n, Vector v) {
+		float costheta=fabs(n*v);
+		return F0+(Color(1,1,1)-F0)*pow( 1-costheta, 5 );
+	}
+
+	Ray reflect(Intersection inter, Ray r) {
+		float cosa=(r.dir*inter.normal)*-1;
+		Ray reflectR;
+		reflectR.dir=(r.dir+inter.normal*cosa*2).normalize();
+		reflectR.start=inter.pos + reflectR.dir * epsilon2;
+		return reflectR;
+	}
+
+	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+		if (r.dir * inter.normal > 0.0f) {
+			inter.normal = inter.normal*-1 ;
+		}
+		Ray reflectR=reflect(inter,r);
+		Color trace=scene.trace(reflectR,rekurzio+1);
+		Color f = Fresnel(inter.normal, r.dir);
+		return (f * trace);
+
+	}
 
 };
 
 struct RefractionSurface :public Surface {
+
+	float k;
+	float n;
+
+	RefractionSurface() {}
+
+	RefractionSurface(float kx, float nx) {
+		k=kx;
+		n=nx;
+	}
+
+	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+
+		if(inter.teto && inter.pos.x>-0.1& inter.pos.x<0.1 &&inter.pos.z>-0.1&& inter.pos.z<0.1 ) {
+			//std::cout<<"zx "<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
+			return Color(1,1,1);
+		}
+		if (inter.teto && inter.pos.y<0.1) {
+			return Color(1,0,0);
+		}
+		if (inter.teto && inter.pos.y>0.8) {
+			//std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
+			return Color(1,1,0);
+		}
+
+		if(inter.pos.z<0 ) {
+             //   std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
+			return Color(0,0,1);
+		}
+		if(inter.pos.z>0) {
+               //std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
+			return Color(0,0,0);
+		}
+		if(inter.pos.y>1) {
+			return Color(0.5,0.5,0.5);
+		}
+
+
+
+		return Color(0,1,0);
+	}
 
 };
 
@@ -375,18 +495,17 @@ struct Floor :public Object {
 		float t=((v-r.start)*normal)/(r.dir*normal); //(r1- eye) * n/(v * n)
 		if(t>epsilon) {
 			bool benne=true;
-			for(int i=0; i<4; i++) {
-				Vector v=sarok[i]-sarok[i==3?0:i+1];
-				v.normalize();
-				Vector n=Vector(v.z, v.y, -v.x);
-				Vector metszes(r.start+r.dir*t);
-				float tav =n*(sarok[i] - metszes);
-				if(tav > epsilon) {
-					benne = false;
-					break;
-				}
-
-			}
+//			for(int i=0; i<4; i++) {
+//				Vector v=sarok[i]-sarok[i==3?0:i+1];
+//				v.normalize();
+//				Vector n=Vector(v.z, v.y, -v.x);
+//				Vector metszes(r.start+r.dir*t);
+//				float tav =n*(sarok[i] - metszes);
+//				if(tav > epsilon) {
+//					benne = false;
+//					break;
+//				}
+//			}
 			if(benne) {
 				Intersection i=Intersection(r.start+r.dir*t,normal,true);
 				return i;
@@ -399,10 +518,111 @@ struct Floor :public Object {
 };
 
 struct Henger :public Object {
+	float sugar;
+	Vector tengelyv;
+	Vector talppont;
+	float magassag;
 
+	Henger() {}
+
+	Henger(Surface* surf, float rx, Vector t, Vector tp, float m) {
+		surface=surf;
+		sugar=rx;
+		tengelyv=t.normalize();
+		talppont=tp;
+		magassag=m;
+	}
+	Vector getNormal(Vector p) {
+		if(p.y<=talppont.y) {
+			return tengelyv*-1;
+		}
+		if(p.y>=talppont.y+magassag) {
+			return tengelyv;
+		}
+		Vector n=Vector(p-(talppont+Vector(0,p.y,0).normalize()));
+		return n;
+	}
+	//https://www.cl.cam.ac.uk/teaching/1999/AGraphHCI/SMAG/node2.html
+	//http://mathworld.wolfram.com/Circle-LineIntersection.html
+	// https://dl.dropboxusercontent.com/u/15861809/Cylinder_Line_Intersection.pdf
+	Intersection intersect(Ray r) {
+
+		float a=pow(r.dir.x,2)+pow(r.dir.z,2);
+		float b=2*((r.start.x-talppont.x)*r.dir.x+(r.start.z-talppont.z)*r.dir.z);
+		float c=pow(r.start.x-talppont.x,2)+pow(r.start.z-talppont.z,2)-pow(sugar,2);
+		float D=pow(b,2)-4*a*c;
+		if(D>=0-epsilon) {
+			float t1=(-b+sqrt(D))/2*a;
+			float t2=(-b-sqrt(D))/2*a;
+			float y1=r.start.y+t1*r.dir.y;
+			float y2=r.start.y+t2*r.dir.y;
+			float x1=r.start.x+t1*r.dir.x;
+			float x2=r.start.x+t2*r.dir.x;
+			float z1=r.start.z+t1*r.dir.z;
+			float z2=r.start.z+t2*r.dir.z;
+
+
+			float tetoptav=(r.start-(talppont+tengelyv*magassag)).Length();
+			float talptav=(r.start-talppont).Length();
+            Intersection teto;
+            if((y1>talppont.y+tengelyv.y*magassag && y2<talppont.y+tengelyv.y*magassag) || (y2>talppont.y+tengelyv.y*magassag && y1<talppont.y+tengelyv.y*magassag)){
+                float t3=(talppont.y+tengelyv.y*magassag-r.start.y)/r.dir.y;
+                if(pow(r.start.x+r.dir.x*t3+talppont.x,2)+pow(r.start.z+r.dir.z*t3+talppont.z,2)<=pow(sugar,2))
+                    teto=Intersection(r.start+r.dir*t3,getNormal(r.start+r.dir*t3),true,true);
+            }
+
+            if((y1>talppont.y && y2<talppont.y) || (y2>talppont.y&& y1<talppont.y)){
+                float t3=(talppont.y+tengelyv.y*magassag-r.start.y)/r.dir.y;
+                if(pow(r.start.x+r.dir.x*t3+talppont.x,2)+pow(r.start.z+r.dir.z*t3+talppont.z,2)<=pow(sugar,2))
+                    teto=Intersection(r.start+r.dir*t3,getNormal(r.start+r.dir*t3),true,true);
+            }
+
+			if((y1<(talppont.y+tengelyv.y*magassag) && y1>talppont.y)) {
+                float t=((t1>0&&t1<t2)?t1:t2);
+				if(y2>talppont.y &&y2<talppont.y+magassag*tengelyv.y) {
+
+                    Intersection i=Intersection(r.start+r.dir*t,Vector(0,0,0),true);
+                    if(teto.talalt && (r.start-teto.pos).Length()<(r.start-i.pos).Length())
+                        return teto;
+                    return i;
+
+				}
+                Intersection i=Intersection(r.start+r.dir*t,getNormal(r.start+r.dir*t1),true);
+                    if(teto.talalt && (r.start-teto.pos).Length()<(r.start-i.pos).Length())
+                        return teto;
+                    return i;
+
+			}
+
+			if(y2>talppont.y &&y2<talppont.y+magassag*tengelyv.y) {
+                float t=((t1>0&&t1<t2)?t1:t2);
+                Intersection i= Intersection(r.start+r.dir*t,getNormal(r.start+r.dir*t2),true);
+                    if(teto.talalt && (r.start-teto.pos).Length()<(r.start-i.pos).Length())
+                        return teto;
+                    return i;
+
+			}
+            return teto;
+
+		}
+
+		return Intersection();
+	}
 };
 
 struct Ellipszoid :public Object {
+	Vector center;
+	Vector abc;
+	//http://mathworld.wolfram.com/Ellipsoid.html
+	Ellipszoid(Surface* surf,Vector c, Vector a) {
+		surface=surf;
+		center=c;
+		abc=a;
+	}
+
+	Intersection intersect(Ray r) {
+
+	}
 
 };
 
@@ -412,7 +632,11 @@ struct Paraboloid :public Object {
 
 //--------------------------------------------
 DiffuseSurface ds;
+RefractionSurface refs;
+ReflectionSurface arany;
+ReflectionSurface ezust;
 Floor flor;
+Henger henger;
 Light light1;
 Light light2;
 Light light3;
@@ -421,16 +645,24 @@ void onInitialization( )
 {
 	glViewport(0, 0, screenWidth, screenHeight);
 
-	camera=Camera(Vector(0, 2, -3), Vector(0, 0,0), Vector(0, 1, 0));
+	camera=Camera(Vector(0, 2,-7), Vector(0, 0,0), Vector(0, 1, 0));
 
 	ds=DiffuseSurface();
+	refs=RefractionSurface();
+	arany=ReflectionSurface(Color(0.17,0.35,1.5),Color(3.1,2.7,1.9));
+	ezust=ReflectionSurface(Color(0.14,0.16,0.13),Color(4.1,2.3,3.1));
+
 	flor=Floor(&ds,Vector(0,0,0),Vector(0,1,0));
 
-	scene.addObject(&flor);
+	henger=Henger(&ezust,1,Vector(0,1,0),Vector(0,0,0),1);
 
-	light1=Light(Color(1,0,0),Vector(1,2,0));
-	light2=Light(Color(0,0,1),Vector(-1,2,-1));
-	light3=Light(Color(0,1,0),Vector(-1,2,1));
+
+	scene.addObject(&henger);
+    scene.addObject(&flor);
+
+	light1=Light(Color(1,0,0),Vector(1,1.5,1));
+	light2=Light(Color(0,1,0),Vector(-1,1.5,0));
+	light3=Light(Color(0,0,1),Vector(-1,1.5,-1));
 
 	scene.addLight(light1);
 	scene.addLight(light2);
@@ -454,12 +686,31 @@ void onDisplay( )
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
-    static int a=1;
+	static int z=-4;
+	static int yy=1;
 	if (key == 'd') {
-		camera=Camera(Vector(0, 2, -3), Vector(0, 0,0), Vector(0, 1, 0));
+		camera=Camera(Vector(0, yy, --z), Vector(0, 0,0), Vector(0, 1, 0));
+		std::cout<<yy<<" "<<z<<std::endl;
 		camera.picture();
 		glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
-
+	}
+	if (key == 'a') {
+		camera=Camera(Vector(0, yy, ++z), Vector(0, 0,0), Vector(0, 1, 0));
+		std::cout<<yy<<" "<<z<<std::endl;
+		camera.picture();
+		glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+	}
+	if (key == 'w') {
+		camera=Camera(Vector(0, ++yy, z), Vector(0, 0,0), Vector(0, 1, 0));
+		std::cout<<yy<<" "<<z<<std::endl;
+		camera.picture();
+		glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+	}
+	if (key == 's') {
+		camera=Camera(Vector(0, --yy, z), Vector(0, 0,0), Vector(0, 1, 0));
+		std::cout<<yy<<" "<<z<<std::endl;
+		camera.picture();
+		glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
 	}
 
 }
