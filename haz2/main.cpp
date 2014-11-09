@@ -63,26 +63,30 @@
 // Innentol modosithatod...
 
 //--------------------------------------------------------
-// 3D Vektor
+// 3x3 matrix
 //--------------------------------------------------------
-#include <iostream>
+#include<iostream>
 
 struct Matrix {
 	float m[9];
-    Matrix(){}
-    Matrix(float *f, int s=9){
-        for(int i=0;i<s;i++){
-            m[i]=f[i];
-        }
-    }
+	Matrix() {}
+	Matrix(float *f, int s=9) {
+		for(int i=0; i<s; i++) {
+			m[i]=f[i];
+		}
+	}
 
-    Matrix identitiy(){
-        float f[9]={1,0,0,0,1,0,0,0,1};
-        Matrix a(f,9);
-        return a;
-    }
+	Matrix identitiy() {
+		float f[9]= {1,0,0,0,1,0,0,0,1};
+		Matrix a(f,9);
+		return a;
+	}
 
 };
+
+//--------------------------------------------------------
+// 3D Vektor
+//--------------------------------------------------------
 
 struct Vector {
 	float x, y, z;
@@ -180,9 +184,7 @@ struct Color {
 	}
 
 	Color saturate() {
-//		float mx=(r>g?r:g);
-//		mx=(mx>b?mx:b);
-//		return Color(r/mx,g/mx,b/mx);
+
 		return Color(r<1.0f?(r>0.0f?r:0.0f):1.0f,g<1.0f?(g>0.0f?g:0.0f):1.0f,b<1.0f?(b>0.0f?b:0.0f):1.0f);
 	}
 };
@@ -192,7 +194,7 @@ struct Color {
 const float FLT_MAX=1048576.1048576;
 const float epsilon=0.000001;
 const float epsilon2=0.001;
-int dmax=1;
+int dmax=4;
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
 
@@ -221,12 +223,12 @@ struct Intersection {
 		teto=tet;
 	}
 
-	Intersection(const Intersection& i){
-        pos=i.pos;
-        normal=i.normal;
-        talalt=i.talalt;
-        objectID=i.objectID;
-        teto=i.teto;
+	Intersection(const Intersection& i) {
+		pos=i.pos;
+		normal=i.normal;
+		talalt=i.talalt;
+		objectID=i.objectID;
+		teto=i.teto;
 	}
 };
 
@@ -252,7 +254,7 @@ struct Light {
 		pos=p;
 	}
 
-	Color getColor(Intersection inter) {
+	Color calculateColor(Intersection inter) {
 		Vector tav=pos-inter.pos;
 		float s=1/pow(tav.Length(),2.0);
 		float intensity =((inter.normal* tav.normalize())>0?(inter.normal* tav.normalize()): 0.0f);
@@ -263,7 +265,7 @@ struct Light {
 };
 
 struct Surface {
-	virtual Color getColor(Intersection inter, Ray r, Light* lights,
+	virtual Color calculateColor(Intersection inter, Ray r, Light* lights,
 	                       int lightnum, int rekurzio) = 0;
 };
 
@@ -284,7 +286,7 @@ struct Scene {
 	Light lights[10];
 	int objectnum;
 	int lightnum;
-	Color image[screenWidth*screenHeight];	// egy alkalmazás ablaknyi kép
+	Color image[screenWidth*screenHeight];	// egy alkalmazas ablaknyi kep
 	Color La;
 	Scene() {
 		La=Color(0.0f, 1.0f, 1.0f);
@@ -301,7 +303,7 @@ struct Scene {
 
 		Intersection i = intersectAll(r);
 		if (i.objectID != -1) {
-			retColor = objects[i.objectID]->surface->getColor(i, r,
+			retColor = objects[i.objectID]->surface->calculateColor(i, r,
 			           lights, lightnum, iter);
 		}
 
@@ -353,7 +355,7 @@ struct Camera {
 		eye=e;
 		lookat=(l-eye).normalize();
 		float fov=120;
-		float meret = tan((fov*M_PI/180)/2); //ezt at kell irni!!!!!!!!!!!!!!!!!!!!
+		float meret = tan((fov*M_PI/180)/2);
 		right=(lookat%u).normalize()*meret;
 		up=(right%lookat).normalize()*meret;
 	}
@@ -370,7 +372,7 @@ struct Camera {
 		Vector p=lookat + right * ((2.0f * (x + 0.5f)) /screenWidth - 1.0f)
 		         + up * ((2.0f * (y + 0.5f)) /screenHeight - 1.0f);
 		Ray r=Ray(eye,(p-eye).normalize());
-		//std::cout<<x<<" "<<y<<" ; "<<r.start.x<<" "<<r.start.y<<" "<<r.start.z<<" ; "<<r.dir.x<<" "<<r.dir.y<<" "<<r.dir.z<<std::endl;
+
 		Color retColor=scene.trace(r, 0);
 		return retColor;
 	}
@@ -393,9 +395,9 @@ struct DiffuseSurface :public Surface {
 
 	}
 
-	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+	Color calculateColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
 		Color Lref;
-		//Color kdx=kd;
+
 		Color kdx=kd*(fabs(sin(inter.pos.x*2*M_PI)*sin(inter.pos.z*2*M_PI)));
 		Color ka=kd/M_PI;
 		Lref=Lref+scene.La*ka;
@@ -403,17 +405,15 @@ struct DiffuseSurface :public Surface {
 			Vector sh= (lights[i].pos-inter.pos).normalize();
 			Ray shadowR(inter.pos+(sh*epsilon2),sh);
 			Intersection shadow=scene.intersectAll(shadowR);
-			if(shadow.talalt) {
-				//std::cout<<"sht "<<shadow.pos.x<<" "<<shadow.pos.y<<" "<<shadow.pos.z<<std::endl;
-			}
+
 			if(!shadow.talalt ||(shadowR.start - shadow.pos).Length()> (shadowR.start - lights[i].pos).Length()) {
 				float costheta = inter.normal * lights[i].pos;
 				if (costheta < 0) return Color(0, 0, 0);
-				Lref= Lref+ lights[i].getColor(inter) * kdx * costheta;		// diffuse reflection
+				Lref= Lref+ lights[i].calculateColor(inter) * kdx * costheta;		// diffuse reflection
 				Vector H =(lights[i].pos + r.start).normalize();
 				float cosdelta=inter.normal*H;
 				if (cosdelta < 0) return Lref;
-				Lref = Lref + lights[i].getColor(inter) * ks * pow(cosdelta, n);	// glossy reflection
+				Lref = Lref + lights[i].calculateColor(inter) * ks * pow(cosdelta, n);	// glossy reflection
 			}
 		}
 		return Lref;
@@ -426,7 +426,7 @@ struct ReflectionSurface :public Surface {
 	Color F0;
 	ReflectionSurface() {}
 	ReflectionSurface(Color n, Color k) {
-		F0=((n - 1) * (n - 1) + k * k) / ((n + 1) * (n + 1) + k * k);
+		F0=((n-1)*(n-1)+k*k)/((n+1)*(n+1)+k*k);
 	}
 
 
@@ -435,7 +435,7 @@ struct ReflectionSurface :public Surface {
 		return F0+(Color(1,1,1)-F0)*pow( 1-costheta, 5 );
 	}
 
-	Ray reflect(Intersection inter, Ray r) {
+	Ray reflectdir(Intersection inter, Ray r) {
 
 		float cosa=(r.dir*inter.normal)*-1;
 		Ray reflectR;
@@ -444,12 +444,11 @@ struct ReflectionSurface :public Surface {
 		return reflectR;
 	}
 
-	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+	Color calculateColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
 
 
-		Ray reflectR=reflect(inter,r);
+		Ray reflectR=reflectdir(inter,r);
 
-		//Color trace=scene.trace(reflectR,rekurzio+1);
 		Color f =Fresnel(inter.normal, r.dir);
 		return (f*scene.trace(reflectR,rekurzio+1));
 	}
@@ -468,12 +467,12 @@ struct RefractionSurface :public ReflectionSurface {
 		n=nx;
 		Color nc(n,n,n);
 		Color kc(k,k,k);
-		F0=((nc - 1) * (nc - 1) + kc * kc) / ((nc + 1) * (nc + 1) + kc * kc);
+		F0=((nc-1)*(nc-1)+kc*kc)/((nc+1)*(nc+1)+kc*kc);
 	}
 
 
 
-	bool refract(Intersection inter, Ray r, Ray *ret) {
+	bool refractdir(Intersection inter, Ray r, Ray *ret) {
 		float cosa=(inter.normal*r.dir)*-1;
 		float cn=n;
 		if(cosa<0) {
@@ -481,25 +480,22 @@ struct RefractionSurface :public ReflectionSurface {
 			inter.normal=inter.normal*-1;
 			cn=1/n;
 		}
-		float disc=(1-(1*(-cosa*cosa)/(cn*cn)));
+		float disc=1-((1-(cosa*cosa))/cn/cn);
 		if(disc<0) return false;
 		ret->dir=(r.dir/cn+inter.normal*(cosa/cn-sqrt(disc))).normalize();
 		ret->start=inter.pos+ret->dir*epsilon2;
 		return true;
 	}
 
-	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+	Color calculateColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
+        if(r.dir*inter.normal>0){
+            inter.normal=inter.normal*(-1);
+        }
 		Ray refractR;
 		Color f=Color(1,1,1)-Fresnel(inter.normal, r.dir);
 		Color ret;
-		if(refract(inter, r, &refractR)) {
-			Color trace=scene.trace(refractR, rekurzio+1);
-			ret=ret+f*trace;
-		} else {
-			Ray reflectR=reflect(inter,r);
-			Color trace=scene.trace(reflectR, rekurzio+1);
-			ret=ret+f*trace;
-
+		if(refractdir(inter, r, &refractR)) {
+			ret=ret+f*scene.trace(refractR, rekurzio+1);
 		}
 
 		return ret.tonemap();
@@ -512,7 +508,7 @@ struct Floor :public Object {
 	Vector normal;
 	Vector v;
 	Vector tolas;   //sarkok kiszamolasahoz
-	Floor(Surface* surf, Vector v1, Vector n,Vector t=Vector(1,0,1)) {
+	Floor(Surface* surf, Vector v1, Vector n,Vector t=Vector(2,0,2)) {
 		surface=surf;
 		v=v1;
 		normal=n.normalize();
@@ -555,8 +551,8 @@ struct Henger :public Object {
 	Vector tengelyv;
 	Vector talppont;
 	float magassag;
-    Vector fuggoleges;
-    bool forgatott;
+	Vector fuggoleges;
+	bool forgatott;
 	Henger() {}
 
 	Henger(Surface* surf, float rx, Vector t, Vector tp, float m, Vector f=Vector(0,1,0)) {
@@ -566,59 +562,69 @@ struct Henger :public Object {
 		talppont=tp;
 		magassag=m;
 
-        fuggoleges=f.normalize();
-		Vector j=Vector(0,1,0);
-		if(j.x==f.x&&j.y==f.y&&j.z==f.z){
-            forgatott=false;
-		}else{
-            forgatott=true;
+		fuggoleges=f.normalize();
+		Vector j=fuggoleges;
+		Vector i=Vector(0,1,0)%j;
+		Vector k=(j%i).normalize();
+		if(i.x || i.y || i.z) {
+			forgatott=true;
+		} else {
+			forgatott=false;
 		}
 
-		Vector i=(fuggoleges%j).normalize();
-		Vector k=(j%i).normalize();
-		float asd[9]={i.x,i.y,i.z,j.x,j.y,j.z,k.x,k.y,k.z};
+		float asd[9]= {i.x,i.y,i.z,j.x,j.y,j.z,k.x,k.y,k.z};
 		forgatas=Matrix(asd,9);
-		float asd2[9]={i.x,j.x,k.x,i.y,j.y,k.y,i.z,j.z,k.z};
+		float asd2[9]= {i.x,j.x,k.x,i.y,j.y,k.y,i.z,j.z,k.z};
 		inverzforgatas=Matrix(asd2,9);
 
 	}
 	Vector getNormal(Vector p) {
-		if(p.y<talppont.y+epsilon) {
+		if(forgatott) {
+			Vector np=(p-talppont)*inverzforgatas;
+			Vector tp=(talppont-talppont)*inverzforgatas;
+			Vector s=(talppont+tengelyv-talppont)*inverzforgatas;
+			Vector nv=(s-tp).normalize();
+			if(np.y<tp.y+epsilon) {
+				return tengelyv*-1;
+			}
+			if(np.y>tp.y+nv.y*magassag-epsilon) {
+				return tengelyv;
+			}
+			Vector n=Vector(np-(tp+Vector(0,np.y,0))).normalize();
+			Vector se=(tp+n)*forgatas+talppont;
+			n=(se-talppont).normalize();
+			return n;
+		}
+		if(p.y<=talppont.y+epsilon) {
 			return tengelyv*-1;
 		}
-		if(p.y>talppont.y+magassag-epsilon) {
+		if(p.y>=talppont.y+magassag-epsilon) {
 			return tengelyv;
 		}
-		Vector n=Vector((talppont+Vector(0,p.y,0)-p).normalize());
+		Vector n=talppont+tengelyv*(tengelyv*p);
+		n=(p-n).normalize();
 		return n;
 	}
 
-	//https://www.cl.cam.ac.uk/teaching/1999/AGraphHCI/SMAG/node2.html
 	Intersection intersect(Ray r) {
 
-        if(forgatott){
-            Vector ntalppont=talppont*inverzforgatas;
-            Vector seged=talppont+tengelyv;
-            seged=seged*inverzforgatas;
-            Vector ndir=(seged-ntalppont).normalize();
-            Henger h=Henger(surface,sugar,ndir,ntalppont,magassag);
-
-            Ray newr;
-            newr.start=r.start*inverzforgatas;
-            Vector seged2=r.start+r.dir;
-            seged=seged2*inverzforgatas;
-            newr.dir=(seged2-newr.start).normalize();
-            Intersection i= h.intersect(newr);
-            if(i.talalt){
-            Vector pos=i.pos;
-            Vector s=(pos+i.normal)*forgatas;
-            pos=pos*forgatas;
-            Vector d=(s-pos).normalize();
-            return Intersection(pos,d,true);
-            }
-            return Intersection();
-
-        }
+		Ray newr=r;
+		if(forgatott) {
+			newr.start=(r.start-talppont)*inverzforgatas;
+			Vector seged=r.start+r.dir-talppont;
+			seged=seged*inverzforgatas;
+			newr.dir=(seged-newr.start).normalize();
+			Henger h=Henger(surface,sugar,Vector(0,1,0),talppont-talppont, magassag);
+			Intersection i=h.intersect(newr);
+			if(i.talalt) {
+				Vector pos=i.pos;
+				Vector s=(pos+i.normal)*forgatas+talppont;
+				pos=pos*forgatas+talppont;
+				Vector d=(s-pos).normalize();
+				return Intersection(pos,d,true);
+			}
+			return Intersection();
+		}
 
 		float a=pow(r.dir.x,2)+pow(r.dir.z,2);
 		float b=2*((r.start.x-talppont.x)*r.dir.x+(r.start.z-talppont.z)*r.dir.z);
@@ -640,7 +646,7 @@ struct Henger :public Object {
 			if((y1>talppont.y+(tengelyv.y+epsilon)*magassag && y2<talppont.y+(tengelyv.y+epsilon)*magassag) || (y2>talppont.y+(tengelyv.y+epsilon)*magassag && y1<talppont.y+(tengelyv.y+epsilon)*magassag)) {
 
 				float t3=(talppont.y+tengelyv.y*magassag-r.start.y)/r.dir.y;
-				tt=t3;
+
 				if((y1>talppont.y+(tengelyv.y+epsilon)*magassag && y2<talppont.y+magassag*epsilon) || (y2>talppont.y+(tengelyv.y+epsilon)*magassag&& y1<talppont.y+magassag*epsilon)) {
 					float t4=(talppont.y-r.start.y)/r.dir.y;
 					if((t3<t4&&t3>epsilon)||(t4<epsilon&&t3>epsilon)) {
@@ -656,7 +662,9 @@ struct Henger :public Object {
 			} else if(((y1>talppont.y && y2<talppont.y) || (y2>talppont.y&& y1<talppont.y)) &&
 			          !((y1>talppont.y+tengelyv.y*magassag && y2<talppont.y+tengelyv.y*magassag) || (y2>talppont.y+tengelyv.y*magassag && y1<talppont.y+tengelyv.y*magassag)) ) {
 				float t3=(talppont.y-r.start.y)/r.dir.y;
-				tt=t3;
+				if(t3>epsilon){
+                    tt=t3;
+				}
 				teto=Intersection(r.start+r.dir*tt,getNormal(r.start+r.dir*tt),true,true);
 			}
 
@@ -664,12 +672,12 @@ struct Henger :public Object {
 			if((y1<(talppont.y+(tengelyv.y+epsilon)*magassag) && y1>talppont.y+magassag*epsilon)) {
 
 				if(y2>talppont.y+magassag*epsilon &&y2<talppont.y+magassag*(tengelyv.y+epsilon)) {
-					float t;
-			if((t1<t2 && t1>epsilon)|| (t2<epsilon && t1>epsilon)) {
-				t=t1;
-			}else if((t2<t1&&t2>epsilon) || (t1<epsilon && t2>epsilon)) {
-				t=t2;
-			}
+					float t=FLT_MAX;
+					if((t1<t2 && t1>epsilon)|| (t2<epsilon && t1>epsilon)) {
+						t=t1;
+					} else if((t2<t1&&t2>epsilon) || (t1<epsilon && t2>epsilon)) {
+						t=t2;
+					}
 					i=Intersection(r.start+r.dir*t,getNormal(r.start+r.dir*t),true);
 
 				} else {
@@ -716,15 +724,15 @@ struct Ellipszoid :public Object {
 		Vector j=fuggoleges;
 		Vector i=Vector(0,1,0)%j;
 		Vector k=(j%i).normalize();
-		if(i.x || i.y || i.z){
-            forgatott=true;
-		}else{
-            forgatott=false;
+		if(i.x || i.y || i.z) {
+			forgatott=true;
+		} else {
+			forgatott=false;
 		}
 
-		float asd[9]={i.x,i.y,i.z,j.x,j.y,j.z,k.x,k.y,k.z};
+		float asd[9]= {i.x,i.y,i.z,j.x,j.y,j.z,k.x,k.y,k.z};
 		forgatas=Matrix(asd,9);
-		float asd2[9]={i.x,j.x,k.x,i.y,j.y,k.y,i.z,j.z,k.z};
+		float asd2[9]= {i.x,j.x,k.x,i.y,j.y,k.y,i.z,j.z,k.z};
 		inverzforgatas=Matrix(asd2,9);
 
 	}
@@ -732,24 +740,23 @@ struct Ellipszoid :public Object {
 
 
 	Intersection intersect(Ray r) {
-	    Ray newr=r;
-	    if(forgatott){
-            //center=center*inverzforgatas;
-            newr.start=(r.start-center)*inverzforgatas;
-            Vector seged=r.start+r.dir-center;
-            seged=seged*inverzforgatas;
-            newr.dir=(seged-newr.start).normalize();
-            Ellipszoid e=Ellipszoid(surface,center-center,abc);
-            Intersection i=e.intersect(newr);
-            if(i.talalt){
-                Vector pos=i.pos;
-                Vector s=(pos+i.normal)*forgatas+center;
-                pos=pos*forgatas+center;
-                Vector d=(s-pos).normalize();
-                return Intersection(pos,d,true);
-            }
-            return Intersection();
-        }
+		Ray newr=r;
+		if(forgatott) {
+			newr.start=(r.start-center)*inverzforgatas;
+			Vector seged=r.start+r.dir-center;
+			seged=seged*inverzforgatas;
+			newr.dir=(seged-newr.start).normalize();
+			Ellipszoid e=Ellipszoid(surface,center-center,abc);
+			Intersection i=e.intersect(newr);
+			if(i.talalt) {
+				Vector pos=i.pos;
+				Vector s=(pos+i.normal)*forgatas+center;
+				pos=pos*forgatas+center;
+				Vector d=(s-pos).normalize();
+				return Intersection(pos,d,true);
+			}
+			return Intersection();
+		}
 
 		float A=(newr.dir.x*newr.dir.x/(abc.x*abc.x) +newr.dir.y*newr.dir.y/(abc.y*abc.y) +newr.dir.z*newr.dir.z/(abc.z*abc.z));
 		float B=((2*newr.dir.x*(newr.start.x-center.x))/(abc.x*abc.x))+ ((2*newr.dir.y*(newr.start.y-center.y))/(abc.y*abc.y))+ ((2*newr.dir.z*(newr.start.z-center.z))/(abc.z*abc.z));
@@ -765,19 +772,13 @@ struct Ellipszoid :public Object {
 			float t;
 			if((t1<t2 && t1>epsilon)|| (t2<epsilon && t1>epsilon)) {
 				t=t1;
-			}else if((t2<t1&&t2>epsilon) || (t1<epsilon && t2>epsilon)) {
+			} else if((t2<t1&&t2>epsilon) || (t1<epsilon && t2>epsilon)) {
 				t=t2;
-			}else{
-                return Intersection();
+			} else {
+				return Intersection();
 			}
 
-//			if(forgatott){
-//                Ray nr;
-//                Vector eredmeny=newr.start+newr.dir*t;
-//                eredmeny=eredmeny*inverzforgatas;
-//                return Intersection(eredmeny,getNormal(eredmeny),true);
-//
-//            }
+
 
 			return Intersection(r.start+r.dir*t,getNormal(r.start+r.dir*t),true);
 		}
@@ -785,103 +786,64 @@ struct Ellipszoid :public Object {
 	}
 
 	Vector getNormal(Vector p) {
-		//return (p-center).normalize();
 
 		Vector n=Vector(2*(p.x-center.x)/(abc.x*abc.x),2*(p.y-center.y)/(abc.y*abc.y),2*(p.z-center.z)/(abc.z*abc.z)).normalize();
-		if(forgatott)  return n*forgatas;
+		if(forgatott) {
+			Vector pos=p;
+			Vector seged=pos+n;
+			seged=seged*forgatas+center;
+			pos=pos*forgatas+center;
+			Vector d=(seged-pos).normalize();
+			return d;
+		}
 		return n;
 	}
 
 
 };
 
-struct Proba :public Surface {
 
-	float k;
-	float n;
-
-	Proba() {}
-
-	Proba(float kx, float nx) {
-		k=kx;
-		n=nx;
-	}
-
-	Color getColor(Intersection inter, Ray r, Light lights[], int lightnum, int rekurzio) {
-
-		if(inter.teto && inter.pos.x>-0.1&& inter.pos.x<0.1 &&inter.pos.z>-0.1&& inter.pos.z<0.1 ) {
-			//std::cout<<"zx "<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
-			return Color(1,1,1);
-		}
-
-
-		if (inter.teto && inter.pos.y<0.1) {
-			return Color(1,0,0);
-		}
-		if (inter.teto && inter.pos.y>0.4) {
-			//std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
-			return Color(1,1,0);
-		}
-
-		if(inter.pos.z<0 ) {
-			//   std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
-			return Color(0,0,1);
-		}
-		if(inter.pos.z>0) {
-			//std::cout<<inter.pos.x<<" "<<inter.pos.y<<" "<<inter.pos.z<<std::endl;
-			return Color(0,0,0);
-		}
-		if(inter.pos.y>1) {
-			return Color(0.5,0.5,0.5);
-		}
-
-
-
-		return Color(0,1,0);
-	}
-
-};
 
 struct Paraboloid :public Object {
 
-    float a;
-    Vector center;
+	float a;
+	Vector center;
 
-    Paraboloid(){}
+	Paraboloid() {}
 
-    Paraboloid(Surface* surf, float ax, Vector c, Vector f=Vector(0,1,0)){
-        surface=surf;
-        a=ax;
-        center=c;
-    }
+	Paraboloid(Surface* surf, float ax, Vector c, Vector f=Vector(0,1,0)) {
+		surface=surf;
+		a=ax;
+		center=c;
+	}
 
-    Vector getNormal(Vector p){
-        return Vector(0,0,0);
-    }
+	Vector getNormal(Vector p) {
+		return Vector(0,0,0);
+	}
 
-    Intersection intersect(Ray r){
-        float A=(r.dir.x*r.dir.x)*a+(r.dir.z*r.dir.z)*a;
-        float B=2*(r.start.x-center.x)/(a*a) +2*(r.start.z-center.z)/(a*a)-r.dir.y;
-        float C=pow(r.start.x-center.x,2)*a +pow(r.start.z-center.z,2)*a-r.start.y+center.y;
-        float D=(B*B-4*A*C);
-        if(D>epsilon){
-            float t1=(-B+sqrt(D))/(2*A);
+	Intersection intersect(Ray r) {
+		float A=(r.dir.x*r.dir.x)*a+(r.dir.z*r.dir.z)*a;
+		float B=2*(r.start.x-center.x)/(a*a) +2*(r.start.z-center.z)/(a*a)-r.dir.y;
+		float C=pow(r.start.x-center.x,2)*a +pow(r.start.z-center.z,2)*a-r.start.y+center.y;
+		float D=(B*B-4*A*C);
+		if(D>epsilon) {
+			float t1=(-B+sqrt(D))/(2*A);
 			float t2=(-B-sqrt(D))/(2*A);
 			float t;
 
 			if((t1<t2 && t1>epsilon)|| (t2<epsilon && t1>epsilon)) {
 				t=t1;
-			}else if((t2<t1&&t2>epsilon) || (t1<epsilon && t2>epsilon)) {
+			} else if((t2<t1&&t2>epsilon) || (t1<epsilon && t2>epsilon)) {
 				t=t2;
-			}else{
-                return Intersection();
+			} else {
+				return Intersection();
 			}
 
 
 			return Intersection(r.start+r.dir*t,getNormal(r.start+r.dir*t),true);
-        }
-        return Intersection();
-    }
+		}
+		return Intersection();
+	}
 
 };
 //--------------------------------------------
@@ -890,13 +852,13 @@ DiffuseSurface ds;
 RefractionSurface uveg;
 ReflectionSurface arany;
 ReflectionSurface ezust;
-
 Floor flor;
-Henger henger;
-Ellipszoid ellipszoid;
-Ellipszoid e;
 
-Floor f;
+//Henger henger;
+//Ellipszoid ellipszoid;
+//Ellipszoid e;
+//Proba pr;
+//Floor f;
 
 Light light1;
 Light light2;
@@ -909,9 +871,9 @@ void buidCactuses()
 {
 	srand(1);
 
-	float R=0.3;
-	float h=0.5;
-	Hcactus[0]=Henger(&uveg,R,Vector(0,1,0),Vector(0.5,0,0),h);
+	float R=0.2;
+	float h=1;
+	Hcactus[0]=Henger(&uveg,R,Vector(0,1,0),Vector(0,0,0),h);
 
 
 	Vector ujp;
@@ -919,24 +881,27 @@ void buidCactuses()
 	Vector ujtengelyv;
 	float ujr;
 	for(int i=1; i<11; i++) {
-		float v=(float)rand()/(float)RAND_MAX;
-		float u=(float)rand()*2*M_PI/(float)RAND_MAX;
+
 		if(i%2) {
+			float v=(float)rand()*h/(float)RAND_MAX;
+			float u=(float)rand()*2*M_PI/(float)RAND_MAX;
 			ujp=Vector(R*cos(u),h*v,R*sin(u));
 			ujh=h/2;
 			ujr=R/2;
 			ujtengelyv=Hcactus[0].getNormal(ujp);
-			Hcactus[i]=Henger(&uveg, ujr, ujtengelyv, ujp, ujh);
+			Hcactus[i]=Henger(&uveg, ujr, ujtengelyv, ujp, ujh,ujtengelyv);
 		} else {
-			Vector megujabbp=Vector(ujr*cos(u),ujh*v,ujr*sin(u));
+			float v=(float)rand()*ujh/(float)RAND_MAX;
+			float u=(float)rand()*2*M_PI/(float)RAND_MAX;
+			Vector megujabbp=Vector(ujr*cos(u),ujh*(v),ujr*sin(u))*Hcactus[i-1].forgatas+Hcactus[i-1].talppont;
 			float megujabbh=ujh/2;
 			float megujabbr=ujr/2;
 			Vector megujabbv=Hcactus[i-1].getNormal(megujabbp);
-			Hcactus[i]=Henger(&uveg, megujabbr,megujabbv,megujabbp,megujabbh);
+			Hcactus[i]=Henger(&uveg, megujabbr,megujabbv,megujabbp,megujabbh, megujabbv);
 		}
 	}
 	Vector abc(0.2,0.5,0.2);
-	Vector center(-0.5,0.5,0);
+	Vector center(-0.5,0.5,1);
 	Ecactus[0]=Ellipszoid(&arany,center, abc);
 	Vector ujabc;
 	Vector ujcenter;
@@ -951,7 +916,7 @@ void buidCactuses()
 			ujcenter=p+norm*ujabc.y;
 			Ecactus[i]=Ellipszoid(&arany,ujcenter,ujabc,norm);
 		} else {
-			Vector megujabbp=ujcenter+Vector(ujabc.x*sin(v)*cos(u),ujabc.y*cos(v),ujabc.z*sin(v)*sin(u));
+			Vector megujabbp=ujcenter+Vector(ujabc.x*sin(v)*cos(u),ujabc.y*cos(v),ujabc.z*sin(v)*sin(u))*Ecactus[i-1].forgatas;
 			Vector megujabbabc=Vector(ujabc.x,ujabc.y,ujabc.z)/2;
 			Vector norm=Ecactus[i-1].getNormal(megujabbp);
 			Vector megujabbcenter=megujabbp+norm*megujabbabc.y;
@@ -960,7 +925,7 @@ void buidCactuses()
 	}
 
 	for(int i=0; i<11; i++) {
-		//scene.addObject(&Hcactus[i]);
+		scene.addObject(&Hcactus[i]);
 		scene.addObject(&Ecactus[i]);
 	}
 }
@@ -968,41 +933,44 @@ void buidCactuses()
 //--------------------------------------------
 
 Paraboloid para;
-Proba pr;
+
 
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( )
 {
 	glViewport(0, 0, screenWidth, screenHeight);
 
-	camera=Camera(Vector(10, 10,0), Vector(0, 1,0), Vector(0, 1, 0));
+	camera=Camera(Vector(0, 3,-3), Vector(0, 1,0), Vector(0, 1, 0));
 
 	ds=DiffuseSurface();
 	uveg=RefractionSurface(0,1.5);
 	arany=ReflectionSurface(Color(0.17,0.35,1.5),Color(3.1,2.7,1.9));
 	ezust=ReflectionSurface(Color(0.14,0.16,0.13),Color(4.1,2.3,3.1));
-
 	flor=Floor(&ds,Vector(0,0,0),Vector(0,1,0));
-	f=Floor(&arany,Vector(0,2,0),Vector(0,1,1));
 
 
-	henger=Henger(&arany,0.3,Vector(0,0.9,0),Vector(0,0,0),0.5,Vector(0,0.9,0));
-	ellipszoid=Ellipszoid(&pr,Vector(-0.5,0.5,-0.5),Vector(0.25,0.5,0.25),Vector(1,1,0));
-	e=Ellipszoid(&uveg,Vector(0,0.5,0.5),Vector(0.5,0.5,0.5));
-	para=Paraboloid(&pr,1,Vector(0,0,0));
+//	f=Floor(&arany,Vector(0,2,0),Vector(0,1,1));
+//
+//
+//	henger=Henger(&uveg,0.3,Vector(0,1,0),Vector(0,0,0),0.5,Vector(0,1,0));
+//	ellipszoid=Ellipszoid(&arany,Vector(-0.5,0.5,-0.5),Vector(0.25,0.5,0.25),Vector(0,1,0));
+//	e=Ellipszoid(&uveg,Vector(0,0.5,0.5),Vector(0.5,0.5,0.5));
+//	para=Paraboloid(&pr,1,Vector(0,0,0));
 
 //    scene.addObject(&para);
 //	scene.addObject(&henger);
 //	scene.addObject(&ellipszoid);
 //	scene.addObject(&e);
-	scene.addObject(&flor);
+
 	//scene.addObject(&f);
 
+
+    scene.addObject(&flor);
 	buidCactuses();
 
-	light1=Light(Color(10,0,0),Vector(0,3,-3));
-	//light2=Light(Color(0,10,0),Vector(-3,3,3));
-	//light3=Light(Color(0,0,10),Vector(3,3,3));
+	light1=Light(Color(10,0,0),Vector(5,3,-5));
+	light2=Light(Color(0,10,0),Vector(5,3,-5));
+	light3=Light(Color(0,0,10),Vector(5,3,-5));
 
 	scene.addLight(light1);
 	scene.addLight(light2);
@@ -1026,8 +994,8 @@ void onDisplay( )
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
-	static int z=-4;
-	static int yy=1;
+	static int z=-3;
+	static int yy=3;
 	if (key == 'd') {
 		camera=Camera(Vector(0, yy, --z), Vector(0, 0,0), Vector(0, 1, 0));
 		std::cout<<yy<<" "<<z<<std::endl;
