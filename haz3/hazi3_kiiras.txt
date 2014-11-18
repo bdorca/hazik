@@ -1,0 +1,9 @@
+Készítsen szimulátort mûhold befogáshoz a MIR ûrállomás számára! A fényforrás a távoli nap. Az ûrállomás a csillagos égbolt elõtt, egy diffúz, procedurálisan textúrázott bolygó körül kering, pályája nem geostracionárius. A bolygót átlátszó kékes légkör veszi körül. Az ûrállomás teste fémes csillogású forgástest, a sziluett Catmull-Rom spline-nal adandó meg. Az ûrállomáson van egy nagyjából kör alakú lyuk. Az ûrállomáshoz legalább két napelem tábla tartozik. Az ûrállomás egy, a fõ tehetetlenségi iránytól különbözõ tengely körül lassan forog.
+
+Az avatárunk éppen ûrsétát végez, magát az ûrállomáshoz kötve egy hosszú gumikötél végén rángatózva. A gumikötél csak egy adott távolság után feszül meg, azon túl Hooke törvény szerint nyúlik. Az ûrállomástól nem zérus sebességgel rúgtuk el magunkat. Avatárunk tömege az ûrállomás tömegénél sokkal kisebb. Az avatár mindig az ûrállomás nyílása felé néz.
+
+A mesterséges hold gömb alakú, amibõl legalább három henger vagy kúp alakú fúvóka nyúlik ki (bónusz: ha a fúvókák tengelye nem megy át a súlyponton, akkor a forgását is szabályozhatjuk). Kezdetben a mûhold az ûrállomáshoz képest lassan halad és forog. A mûhold ugyancsak diffúz-spekuláris, a fúvókák színe alapján vezérelhetjük õket. Ha a q, w, ... billentyûket lenyomjuk, a betûhöz rendelt fúvókán egy lángnyelv tör ki, a mûhold pedig ellentétes irányú I impulzust kap. A lendület és perdület, mint mindig, itt is megmarad.
+
+A játék célja, hogy a mesterséges hold a mûhold nyílásán besétáljon.
+
+A harmadik feladat a játék "csendélete", még nem kell az objektumokat animálni és lángnyelvet sem kell kilõni. A virtuális világ életre keltése és vezérlése a negyedik házi feladata lesz. 

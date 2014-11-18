@@ -455,7 +455,7 @@ struct ReflectionSurface :public Surface {
 
 };
 
-struct RefractionSurface :public ReflectionSurface {
+struct RefractionSurface :public Surface {
 
 	float k;
 	float n;
@@ -470,7 +470,10 @@ struct RefractionSurface :public ReflectionSurface {
 		F0=((nc-1)*(nc-1)+kc*kc)/((nc+1)*(nc+1)+kc*kc);
 	}
 
-
+    Color Fresnel(Vector n, Vector v) {
+		float costheta=fabs(n*v);
+		return F0+(Color(1,1,1)-F0)*pow( 1-costheta, 5 );
+	}
 
 	bool refractdir(Intersection inter, Ray r, Ray *ret) {
 		float cosa=(inter.normal*r.dir)*-1;
