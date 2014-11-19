@@ -62,9 +62,27 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Innentol modosithatod...
 
+struct Matrix {
+	float m[9];
+	Matrix() {}
+	Matrix(float *f, int s=9) {
+		for(int i=0; i<s; i++) {
+			m[i]=f[i];
+		}
+	}
+
+	Matrix identitiy() {
+		float f[9]= {1,0,0,0,1,0,0,0,1};
+		Matrix a(f,9);
+		return a;
+	}
+
+};
+
 //--------------------------------------------------------
 // 3D Vektor
 //--------------------------------------------------------
+
 struct Vector {
 	float x, y, z;
 
@@ -79,6 +97,9 @@ struct Vector {
 	Vector operator*(float a) {
 		return Vector(x * a, y * a, z * a);
 	}
+	Vector operator/(float a) {
+		return Vector(x / a, y / a, z / a);
+	}
 	Vector operator+(const Vector& v) {
 		return Vector(x + v.x, y + v.y, z + v.z);
 	}
@@ -88,12 +109,25 @@ struct Vector {
 	float operator*(const Vector& v) { 	// dot product
 		return (x * v.x + y * v.y + z * v.z);
 	}
+
+	float operator/(const Vector& v) {
+		return (x / v.x + y / v.y + z / v.z);
+	}
+
 	Vector operator%(const Vector& v) { 	// cross product
 		return Vector(y*v.z-z*v.y, z*v.x - x*v.z, x*v.y - y*v.x);
 	}
 	float Length() {
 		return sqrt(x * x + y * y + z * z);
 	}
+	Vector normalize() {
+		return (*this)*(1.0f/Length());
+	}
+
+	Vector operator*(Matrix m) {
+		return Vector(x*m.m[0]+y*m.m[3]+z*m.m[6],x*m.m[1]+y*m.m[4]+z*m.m[7],x*m.m[2]+y*m.m[5]+z*m.m[8]);
+	}
+
 };
 
 //--------------------------------------------------------
@@ -123,27 +157,39 @@ struct Color {
 
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
-const int NTESS=10;
+const int NTESS=100;
 
 struct Object {
 	virtual void draw()=0;
 };
 
 struct Light {
-    Vector pos;
-    Color Ld, La, Ls;
+	GLenum id;
+	Vector pos;
+	Color Ld, La, Ls;
 
-    Light(){}
+	Light() {}
 
-    Light(Vector p, Color d, Color a, Color s){
-        pos=p;
-        Ld=d;
-        La=a;
-        Ls=s;
-    }
+	Light(GLenum i, Vector p, Color d, Color a, Color s) {
+		id=i;
+		pos=p;
+		Ld=d;
+		La=a;
+		Ls=s;
+	}
 
 	void setOGL() {
-
+		float ppos[4] = {pos.x, pos.y, pos.z, 1};
+		float ld[4] = {Ld.r, Ld.g, Ld.b, 0};
+		float la[4] = {La.r, La.g, La.b, 0};
+		float ls[4] = {Ls.r, Ls.g, Ls.b, 0};
+		glLightfv(id, GL_POSITION, ppos);
+		glLightfv(id, GL_DIFFUSE, ld);
+		glLightfv(id, GL_AMBIENT, la);
+		glLightfv(id, GL_SPECULAR, ls);
+		glLightf(id, GL_CONSTANT_ATTENUATION, 0.0f);
+		glLightf(id, GL_QUADRATIC_ATTENUATION, 0.1f);
+		glEnable(id);
 	}
 };
 
@@ -152,20 +198,20 @@ struct Camera {
 	Vector eye, lookat, vup;
 	float fov, asp, fp, bp;
 
-    Camera(){}
+	Camera() {}
 
 	Camera(Vector e, Vector l, Vector u) {
 		eye=e;
 		lookat=l;
 		vup=u;
-		fov=120;
+		fov=90;
 		asp=1;
 		fp=0.1;
 		bp=100;
 	}
 
 	void setOGL() {
-		glViewport(0, 0, screenWidth, screenHeight);
+
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity( );
 		gluPerspective(fov, asp, fp, bp);
@@ -177,63 +223,70 @@ struct Camera {
 	}
 };
 
-struct Scene {
-	Camera camera;
 
-	Light lights[10];
-	int lightnum;
-
-	Object* objects[10];
-	int objectnum;
-
-	Scene(Camera c) {
-		camera=c;
-		lightnum=0;
-		objectnum=0;
-	}
-
-	void addLight(Light l) {
-		if(lightnum<10) {
-			lights[lightnum++]=l;
-		}
-	}
-
-	void addObject(Object *o) {
-		if(objectnum<10) {
-			objects[objectnum++]=o;
-		}
-	}
-
-	void build() {
-
-	}
-
-	void render() {
-		camera.setOGL();
-		for(int i=0; i<lightnum; i++) {
-			lights[i].setOGL();
-		}
-		for(int i=0; i<objectnum; i++) {
-			objects[i]->draw();
-		}
-		glutSwapBuffers();
-	}
-};
 
 struct Material {
 	Color kd;
 	Color ks;
 	Color ka;
 	int shininess;
+    bool blended;
+	Material() {}
+
+	Material(Color d, Color s, Color a, int n, bool bl=false) {
+		kd=d;
+		ks=s;
+		ka=a;
+		shininess=n;
+		blended=bl;
+	}
+
 	void setOGL() {
+		float d[] = {kd.r, kd.g, kd.b, 1.0};
+		float s[] = {ks.r, ks.g, ks.b, 1.0};
+		float a[] = {ka.r, ka.g, ka.b, 1.0};
+
+        if(blended){
+            d[3]=s[3]=a[3]=0;
+        }
+
+		glMaterialfv( GL_FRONT, GL_DIFFUSE, d);
+		glMaterialfv( GL_FRONT, GL_SPECULAR, s);
+		glMaterialfv( GL_FRONT, GL_AMBIENT, a);
+		glMaterialf( GL_FRONT, GL_SHININESS, shininess);
 
 	}
 };
 
 struct Texture {
-	int text_id;
-	void setOGL() {
+	unsigned int text_id;
+	unsigned char tex[256][256][3];
 
+	void gen() {
+		for(int i=0; i<256; i++) {
+			for(int j=0; j<256; j++) {
+					if(j%2==0 && i%4==0){
+                        srand(j);
+                        tex[i][j][0]=0;
+                        tex[i][j][1]=128;
+                        tex[i][j][2]=0;
+					}else{
+                        tex[i][j][0]=255;
+                        tex[i][j][1]=128;
+                        tex[i][j][2]=0;
+					}
+
+
+			}
+		}
+
+	}
+
+	void setOGL() {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB,GL_UNSIGNED_BYTE, tex);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
 	}
 
 };
@@ -241,16 +294,19 @@ struct Texture {
 struct ParamObject : public Object {
 	Material* mat;
 	Texture* tex;
+	bool mater;
+	bool text;
 
+	virtual Vector getNormal(float x, float y, float z)=0;
 
 	void draw() {
-		if(mat) {
+		if(mater) {
 			mat->setOGL();
 		} else {
 			glDisable(GL_LIGHTING);
 		}
 
-		if(tex) {
+		if(text) {
 			tex->setOGL();
 		} else {
 			glDisable(GL_TEXTURE_2D);
@@ -263,33 +319,178 @@ struct ParamObject : public Object {
 				VertexOGL( (float)(i+1)/NTESS, (float)j/NTESS );
 				VertexOGL( (float)(i+1)/NTESS, (float)(j+1)/NTESS );
 				VertexOGL( (float)i/NTESS, (float)(j+1)/NTESS );
-
 			}
 		}
 		glEnd();
+
 	}
 
 	virtual void VertexOGL(float u, float v)=0;
 };
 
-struct Muhold :public ParamObject {
+struct Napelem :public ParamObject {
 
-	void VertexOGL(float u, float v){}
+	Napelem(Material *m) {
+		mat=m;
+	}
+
+	void VertexOGL(float u, float v) {}
 };
 
-struct MIR :public ParamObject {
-
-	void VertexOGL(float u, float v){}
+struct CRTest :public ParamObject {
+	CRTest(Material *m) {
+		mat=m;
+	}
+	void VertexOGL(float u, float v) {}
 };
 
-struct Planet :public ParamObject{
-    void VertexOGL(float u, float v){}
+struct Gomb :public ParamObject {
+	float r;
+	Vector center;
+
+
+	Vector getNormal(float x, float y, float z) {
+
+	}
+
+	Gomb(Vector c,Material *m, float rx, Texture* t=NULL) {
+		if(m) {
+			mat=m;
+			mater=true;
+		} else {
+			mater=false;
+		}
+		if(t) {
+			text=true;
+			tex=t;
+		} else {
+			text=false;
+		}
+		r=rx;
+		center=c;
+	}
+
+	void VertexOGL(float u, float v) {
+		glTexCoord2f(u,v);
+		//x(u, v) = r · sin vπ · cos 2πu, y(u, v) = r · sin vπ · sin 2πu, z(u, v) = r · cos vπ.
+		float x=r*sin(v*M_PI)*cos(2*M_PI*u)+center.x;
+		float y=r*sin(v*M_PI)*sin(2*M_PI*u)+center.y;
+		float z=r*cos(v*M_PI)+center.z;
+
+		Vector n(x,y,z);
+		n=n-center;
+		glNormal3f(n.x,n.y,n.z);
+		glVertex3f(x, y, z);
+
+	}
 };
 
+struct Henger :public ParamObject {
+	Henger(Material *m) {
+		mat=m;
+	}
+
+	void VertexOGL(float u, float v) {}
+};
+
+struct MIR {
+
+};
+
+struct Muhold {
+
+};
+
+
+struct Scene {
+	Camera* camera;
+
+	Light* lights[10];
+	int lightnum;
+
+	Object* objects[10];
+	int objectnum;
+
+    Gomb* planet;
+
+    Material planetMaterial;
+    Texture planetTexture;
+
+	Scene() {
+		lightnum=0;
+		objectnum=0;
+	}
+
+	void addLight(Light *l) {
+		if(lightnum<10) {
+			lights[lightnum++]=l;
+		}
+	}
+
+	void addObject(Object *o) {
+		if(objectnum<10) {
+			objects[objectnum++]=o;
+		}
+	}
+
+	void build() {
+		camera= new Camera(Vector(0,3,0.1),Vector(0,0,0),Vector(0,1,0));
+		lights[lightnum++]=new Light(GL_LIGHT0,Vector(2,2,-2),Color(1,1,1),Color(1,1,1),Color(1,1,1));
+
+		planetMaterial=Material(Color(1,0.5,0),Color(0,0,0),Color(0,0,0),100);
+		objects[objectnum++]=new Gomb(Vector(0,0,0),&planetMaterial,1,&planetTexture);
+
+		glGenTextures(1, &(planetTexture.text_id));
+		glBindTexture(GL_TEXTURE_2D,planetTexture.text_id);
+		planetTexture.gen();
+
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+            Material legkor=Material(Color(0,0.5,1),Color(0,0,0),Color(0,0,0),1, true);
+            objects[objectnum++]=new Gomb(Vector(0,0,0),&legkor,1.1,NULL);
+        glDisable(GL_BLEND);
+
+        //planet= objects[0];
+	}
+
+	void render() {
+		camera->setOGL();
+		for(int i=0; i<lightnum; i++) {
+			lights[i]->setOGL();
+		}
+		for(int i=0; i<objectnum; i++) {
+
+			objects[i]->draw();
+		}
+
+	}
+
+	~Scene() {
+		delete[] lights;
+		delete[] objects;
+		delete camera;
+		lightnum=0;
+		objectnum=0;
+	}
+};
+
+Scene scene;
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( )
 {
-	Camera cam=Camera();
+	glViewport(0, 0, screenWidth, screenHeight);
+	glDisable(GL_CULL_FACE);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_NORMALIZE);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_TEXTURE_2D);
+	glShadeModel(GL_SMOOTH);
+
+
+
+	scene=Scene();
+	scene.build();
+
 
 }
 
@@ -299,7 +500,7 @@ void onDisplay( )
 	glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
-
+	scene.render();
 	glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
 }
