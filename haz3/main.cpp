@@ -27,8 +27,8 @@
 //
 // NYILATKOZAT
 // ---------------------------------------------------------------------------------------------
-// Nev    : <VEZETEKNEV(EK)> <KERESZTNEV(EK)>
-// Neptun : <NEPTUN KOD>
+// Nev    : BODOLAI DOROTTYA EVA
+// Neptun : DDFKC4
 // ---------------------------------------------------------------------------------------------
 // ezennel kijelentem, hogy a feladatot magam keszitettem, es ha barmilyen segitseget igenybe vettem vagy
 // mas szellemi termeket felhasznaltam, akkor a forrast es az atvett reszt kommentekben egyertelmuen jeloltem.
@@ -247,7 +247,7 @@ struct Material {
 		float a[] = {ka.r, ka.g, ka.b, 1.0};
 
         if(blended){
-            d[3]=s[3]=a[3]=0;
+            d[3]=s[3]=a[3]=0.2;
         }
 
 		glMaterialfv( GL_FRONT, GL_DIFFUSE, d);
@@ -446,9 +446,10 @@ struct Scene {
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-            Material legkor=Material(Color(0,0.5,1),Color(0,0,0),Color(0,0,0),1, true);
+            glClearColor(0.0,0.0,0.0,0.0);
+            Material legkor=Material(Color(0,0,1),Color(0,0,1),Color(0,0,1),1, true);
             objects[objectnum++]=new Gomb(Vector(0,0,0),&legkor,1.1,NULL);
-        glDisable(GL_BLEND);
+        //glDisable(GL_BLEND);
 
         //planet= objects[0];
 	}
