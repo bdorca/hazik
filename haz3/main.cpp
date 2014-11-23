@@ -160,6 +160,7 @@ const int screenHeight = 600;
 const int NTESS=100;
 
 struct Object {
+	Vector center;
 	virtual void draw()=0;
 };
 
@@ -258,6 +259,8 @@ struct Material {
 	}
 };
 
+Material fem;
+
 struct Texture {
 	unsigned int text_id;
 	unsigned char tex[256][256][3];
@@ -324,18 +327,9 @@ struct ParamObject : public Object {
 		glEnd();
 
 	}
-
 	virtual void VertexOGL(float u, float v)=0;
 };
 
-struct Napelem :public ParamObject {
-
-	Napelem(Material *m) {
-		mat=m;
-	}
-
-	void VertexOGL(float u, float v) {}
-};
 
 struct CRTest :public ParamObject {
 	CRTest(Material *m) {
@@ -344,9 +338,10 @@ struct CRTest :public ParamObject {
 	void VertexOGL(float u, float v) {}
 };
 
+
 struct Gomb :public ParamObject {
 	float r;
-	Vector center;
+
 
 
 	Vector getNormal(float x, float y, float z) {
@@ -383,21 +378,103 @@ struct Gomb :public ParamObject {
 		glVertex3f(x, y, z);
 
 	}
+
 };
 
 struct Henger :public ParamObject {
-	Henger(Material *m) {
+
+    float h;
+    Vector irany;
+    float R;
+
+	Henger(Material *m, Vector c, float hx,float r, Vector i) {
+	    center=c;
+	    h=hx;
+	    irany=i;
+		mat=m;
+		R=r;
+	}
+
+    Vector getNormal(float x, float y, float z){
+        if(z<center.z+0.001){
+            return irany*-1;
+        }
+        if(z>center.z+h-0.001){
+            return irany;
+        }
+        return Vector(x,y,center.z)-center;
+
+    }
+    //center==talppont
+    //x=R·cos2piu y=R·sin2piu z=h·v
+	void VertexOGL(float u, float v) {
+        float x=R*cos(2*M_PI*u)+center.x;
+        float y=R*sin(2*M_PI*u)+center.y;
+        float z=h*v+center.z;
+
+        Vector n=getNormal(x,y,z);
+		glNormal3f(n.x,n.y,n.z);
+		glVertex3f(x, y, z);
+
+	}
+};
+
+struct Napelem :public ParamObject {
+
+	Napelem(Material *m) {
 		mat=m;
 	}
+
+	Vector getNormal(){}
 
 	void VertexOGL(float u, float v) {}
 };
 
 struct MIR {
+    CRTest* test;
+    Napelem* napelemek[2];
+    Vector center;
 
+    void build(){
+
+    }
+
+    void draw(){
+
+    }
 };
 
 struct Muhold {
+    Gomb* test;
+    Henger* fuvokak[6];
+    Vector center;
+    float r;
+
+    Muhold(Vector c){
+        center=c;
+        r=0.2;
+    }
+
+    void build(){
+
+        test=new Gomb(center, &fem,r, NULL);
+        //Henger(Material *m, Vector c, float hx,float r, Vector i)
+        fuvokak[0]=new Henger(&fem, Vector(center.x+r,center.y,center.z), r/4, r/4, Vector(center.x+r,center.y,center.z));
+
+
+    }
+
+    void draw(){
+        test->draw();
+        for(int i=0;i<6;i++){
+            fuvokak[i]->draw();
+        }
+    }
+
+    ~Muhold(){
+        delete test;
+        delete[] fuvokak;
+    }
 
 };
 
@@ -405,40 +482,52 @@ struct Muhold {
 struct Scene {
 	Camera* camera;
 
-	Light* lights[10];
-	int lightnum;
-
+//	Light* lights[10];
+//	int lightnum;
+//
 	Object* objects[10];
 	int objectnum;
 
+
+    Light* Sun;
     Gomb* planet;
+    Gomb* Legkor;
+    Muhold* muhold;
+    MIR* mir;
+
 
     Material planetMaterial;
     Texture planetTexture;
 
 	Scene() {
-		lightnum=0;
-		objectnum=0;
+//		lightnum=0;
+//		objectnum=0;
 	}
 
-	void addLight(Light *l) {
-		if(lightnum<10) {
-			lights[lightnum++]=l;
-		}
-	}
-
-	void addObject(Object *o) {
-		if(objectnum<10) {
-			objects[objectnum++]=o;
-		}
-	}
+//	void addLight(Light *l) {
+//		if(lightnum<10) {
+//			lights[lightnum++]=l;
+//		}
+//	}
+//
+//	void addObject(Object *o) {
+//		if(objectnum<10) {
+//			objects[objectnum++]=o;
+//		}
+//	}
 
 	void build() {
-		camera= new Camera(Vector(0,3,0.1),Vector(0,0,0),Vector(0,1,0));
-		lights[lightnum++]=new Light(GL_LIGHT0,Vector(2,2,-2),Color(1,1,1),Color(1,1,1),Color(1,1,1));
+		camera= new Camera(Vector(0,3,1),Vector(0,0,0),Vector(0,1,0));
+		Sun=new Light(GL_LIGHT0,Vector(0,3,-4),Color(10,10,10),Color(10,10,10),Color(10,10,10));
+
+
+        //Henger(Material *m, Vector c, float hx,float r, Vector i)
+        //objects[objectnum++]=new Henger(&fem, Vector(0,0,0), 1, 0.5, Vector(1,0,0));
+
 
 		planetMaterial=Material(Color(1,0.5,0),Color(0,0,0),Color(0,0,0),100);
-		objects[objectnum++]=new Gomb(Vector(0,0,0),&planetMaterial,1,&planetTexture);
+		planet=new Gomb(Vector(0,0,0),&planetMaterial,1,&planetTexture);
+
 
 		glGenTextures(1, &(planetTexture.text_id));
 		glBindTexture(GL_TEXTURE_2D,planetTexture.text_id);
@@ -448,7 +537,8 @@ struct Scene {
 		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
             glClearColor(0.0,0.0,0.0,0.0);
             Material legkor=Material(Color(0,0,1),Color(0,0,1),Color(0,0,1),1, true);
-            objects[objectnum++]=new Gomb(Vector(0,0,0),&legkor,1.1,NULL);
+            Legkor=new Gomb(planet->center,&legkor,1.1,NULL);
+//            objects[objectnum++]=Legkor;
         //glDisable(GL_BLEND);
 
         //planet= objects[0];
@@ -456,22 +546,33 @@ struct Scene {
 
 	void render() {
 		camera->setOGL();
-		for(int i=0; i<lightnum; i++) {
-			lights[i]->setOGL();
-		}
+//		for(int i=0; i<lightnum; i++) {
+//			lights[i]->setOGL();
+//		}
 		for(int i=0; i<objectnum; i++) {
 
 			objects[i]->draw();
 		}
+        Sun->setOGL();
+        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+        glTranslatef(-1,-5,1);
+        planet->draw();
+        Legkor->draw();
+        glPopMatrix();
 
 	}
 
 	~Scene() {
-		delete[] lights;
-		delete[] objects;
+//		delete[] lights;
+//		delete[] objects;
+        delete Sun;
+        delete planet;
+        delete Legkor;
+
 		delete camera;
-		lightnum=0;
-		objectnum=0;
+//		lightnum=0;
+//		objectnum=0;
 	}
 };
 
@@ -487,7 +588,8 @@ void onInitialization( )
 	glEnable(GL_TEXTURE_2D);
 	glShadeModel(GL_SMOOTH);
 
-
+    //Material(Color d, Color s, Color a, int n, bool bl=false)
+    fem=Material(Color(0.7,0.7,0.7),Color(0.7,0.7,0.7),Color(0.7,0.7,0.7),10);
 
 	scene=Scene();
 	scene.build();
