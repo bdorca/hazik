@@ -257,9 +257,12 @@ struct Material {
 		glMaterialf( GL_FRONT, GL_SHININESS, shininess);
 
 	}
+
+	void changeAll(Color c){
+        ka=kd=ks=c;
+	}
 };
 
-Material fem;
 
 struct Texture {
 	unsigned int text_id;
@@ -297,22 +300,18 @@ struct Texture {
 struct ParamObject : public Object {
 	Material* mat;
 	Texture* tex;
-	bool mater;
-	bool text;
+	bool hasMater;
+	bool hasText;
 
 	virtual Vector getNormal(float x, float y, float z)=0;
 
 	void draw() {
-		if(mater) {
+		if(hasMater) {
 			mat->setOGL();
-		} else {
-			glDisable(GL_LIGHTING);
 		}
 
-		if(text) {
+		if(hasText) {
 			tex->setOGL();
-		} else {
-			glDisable(GL_TEXTURE_2D);
 		}
 
 		glBegin(GL_QUADS);
@@ -325,9 +324,9 @@ struct ParamObject : public Object {
 			}
 		}
 		glEnd();
-
 	}
 	virtual void VertexOGL(float u, float v)=0;
+		virtual ~ParamObject(){}
 };
 
 
@@ -351,15 +350,15 @@ struct Gomb :public ParamObject {
 	Gomb(Vector c,Material *m, float rx, Texture* t=NULL) {
 		if(m) {
 			mat=m;
-			mater=true;
+			hasMater=true;
 		} else {
-			mater=false;
+			hasMater=false;
 		}
 		if(t) {
-			text=true;
+			hasText=true;
 			tex=t;
 		} else {
-			text=false;
+			hasText=false;
 		}
 		r=rx;
 		center=c;
@@ -390,17 +389,24 @@ struct Henger :public ParamObject {
 	Henger(Material *m, Vector c, float hx,float r, Vector i) {
 	    center=c;
 	    h=hx;
-	    irany=i;
+	    irany=i.normalize();
 		mat=m;
 		R=r;
+        if(m) {
+			mat=m;
+			hasMater=true;
+		} else {
+			hasMater=false;
+		}
+        hasText=false;
 	}
 
     Vector getNormal(float x, float y, float z){
         if(z<center.z+0.001){
-            return irany*-1;
+            return irany;
         }
         if(z>center.z+h-0.001){
-            return irany;
+            return irany*-1;
         }
         return Vector(x,y,center.z)-center;
 
@@ -415,8 +421,8 @@ struct Henger :public ParamObject {
         Vector n=getNormal(x,y,z);
 		glNormal3f(n.x,n.y,n.z);
 		glVertex3f(x, y, z);
-
 	}
+
 };
 
 struct Napelem :public ParamObject {
@@ -449,25 +455,77 @@ struct Muhold {
     Henger* fuvokak[6];
     Vector center;
     float r;
+    Material testm;
+    Material fuvokam;
 
     Muhold(Vector c){
         center=c;
-        r=0.2;
+        r=1;
     }
 
     void build(){
-
-        test=new Gomb(center, &fem,r, NULL);
+        testm=Material(Color(0.3,0.3,0),Color(0.1,0,0),Color(0,0,0.1),100);
+        fuvokam=Material(Color(1,0,0),Color(1,0,0),Color(1,0,0),10);
+        test=new Gomb(center, &testm ,r, NULL);
         //Henger(Material *m, Vector c, float hx,float r, Vector i)
-        fuvokak[0]=new Henger(&fem, Vector(center.x+r,center.y,center.z), r/4, r/4, Vector(center.x+r,center.y,center.z));
+
+        fuvokak[0]=new Henger(&fuvokam, Vector(center.x+r,center.y,center.z), r/2, r/10, Vector(r,0,0));
+        fuvokak[1]=new Henger(&fuvokam, Vector(center.x-r,center.y,center.z), r/2, r/10, Vector(-r,0,0));
+
+        fuvokak[2]=new Henger(&fuvokam, Vector(center.x,center.y+r,center.z), r/2, r/10, Vector(0,r,0));
+        fuvokak[3]=new Henger(&fuvokam, Vector(center.x,center.y-r,center.z), r/2, r/10, Vector(0,-r,0));
+
+        fuvokak[4]=new Henger(&fuvokam, Vector(center.x,center.y,center.z+r), r/2, r/10, Vector(0,0,r));
+        fuvokak[5]=new Henger(&fuvokam, Vector(center.x,center.y,center.z-r), r/2, r/10, Vector(0,0,-r));
+
 
 
     }
 
     void draw(){
+
         test->draw();
         for(int i=0;i<6;i++){
+            Vector c=fuvokak[i]->center;
+            glPushMatrix();
+
+            glMatrixMode(GL_MODELVIEW);
+
+            switch(i){
+            case 0:
+//                glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                glTranslatef(center.x,center.y,center.z+r);
+                glRotatef(90,0,1,0);
+                break;
+            case 1:
+                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                glTranslatef(center.x,center.y,center.z+r);
+                glRotatef(-90,0,1,0);
+                break;
+            case 2:
+                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                glTranslatef(center.x,center.y,center.z+r);
+                glRotatef(-90,1,0,0);
+                fuvokam.changeAll(Color(0,1,0));
+                break;
+            case 3:
+                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                glTranslatef(center.x,center.y,center.z+r);
+                glRotatef(90,1,0,0);
+                break;
+            case 4:
+                glRotatef(0,1,0,0);
+                fuvokam.changeAll(Color(0,0,1));
+                break;
+            case 5:
+                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z-r);
+                glTranslatef(center.x,center.y,center.z-r);
+                glRotatef(180,0,1,0);
+                break;
+            }
+
             fuvokak[i]->draw();
+            glPopMatrix();
         }
     }
 
@@ -495,13 +553,13 @@ struct Scene {
     Muhold* muhold;
     MIR* mir;
 
-
+    Material legkor;
     Material planetMaterial;
     Texture planetTexture;
 
 	Scene() {
 //		lightnum=0;
-//		objectnum=0;
+		objectnum=0;
 	}
 
 //	void addLight(Light *l) {
@@ -517,62 +575,68 @@ struct Scene {
 //	}
 
 	void build() {
-		camera= new Camera(Vector(0,3,1),Vector(0,0,0),Vector(0,1,0));
-		Sun=new Light(GL_LIGHT0,Vector(0,3,-4),Color(10,10,10),Color(10,10,10),Color(10,10,10));
+		camera= new Camera(Vector(0,3,10),Vector(0,0,0),Vector(0,0,1));
+		Sun=new Light(GL_LIGHT0,Vector(0,4,5),Color(10,10,10),Color(10,10,10),Color(10,10,10));
 
 
         //Henger(Material *m, Vector c, float hx,float r, Vector i)
-        //objects[objectnum++]=new Henger(&fem, Vector(0,0,0), 1, 0.5, Vector(1,0,0));
+//        Material fem=Material(Color(0,0,0),Color(0,0,0),Color(0,0,0),1);
+//       objects[objectnum++]=new Henger(&fem, Vector(0,0,0), 1, 0.5, Vector(0,0,1));
 
+        muhold=new Muhold(Vector(0,0,0));
+        muhold->build();
 
 		planetMaterial=Material(Color(1,0.5,0),Color(0,0,0),Color(0,0,0),100);
-		planet=new Gomb(Vector(0,0,0),&planetMaterial,1,&planetTexture);
+		planet=new Gomb(Vector(0,0,-8),&planetMaterial,2,&planetTexture);
 
 
 		glGenTextures(1, &(planetTexture.text_id));
 		glBindTexture(GL_TEXTURE_2D,planetTexture.text_id);
 		planetTexture.gen();
 
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-            glClearColor(0.0,0.0,0.0,0.0);
-            Material legkor=Material(Color(0,0,1),Color(0,0,1),Color(0,0,1),1, true);
-            Legkor=new Gomb(planet->center,&legkor,1.1,NULL);
-//            objects[objectnum++]=Legkor;
-        //glDisable(GL_BLEND);
 
-        //planet= objects[0];
+        glClearColor(0.0,0.0,0.0,0.0);
+        legkor=Material(Color(0,0,1),Color(0,0,1),Color(0,0,1),10, true);
+        Legkor=new Gomb(planet->center,&legkor,planet->r+0.1,NULL);
 	}
 
 	void render() {
 		camera->setOGL();
+        Sun->setOGL();
 //		for(int i=0; i<lightnum; i++) {
 //			lights[i]->setOGL();
 //		}
+        glPushMatrix();
+        glMatrixMode(GL_MODELVIEW);
+            glEnable(GL_TEXTURE_2D);
+            planet->draw();
+            glDisable(GL_TEXTURE_2D);
+
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+                Legkor->draw();
+            glDisable(GL_BLEND);
+        glPopMatrix();
+
 		for(int i=0; i<objectnum; i++) {
 
 			objects[i]->draw();
 		}
-        Sun->setOGL();
-        glPushMatrix();
-        glMatrixMode(GL_MODELVIEW);
-        glTranslatef(-1,-5,1);
-        planet->draw();
-        Legkor->draw();
-        glPopMatrix();
+        muhold->draw();
+
 
 	}
 
 	~Scene() {
 //		delete[] lights;
-//		delete[] objects;
+		delete[] objects;
         delete Sun;
         delete planet;
         delete Legkor;
 
 		delete camera;
 //		lightnum=0;
-//		objectnum=0;
+        objectnum=0;
 	}
 };
 
@@ -585,11 +649,9 @@ void onInitialization( )
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_NORMALIZE);
 	glEnable(GL_LIGHTING);
-	glEnable(GL_TEXTURE_2D);
 	glShadeModel(GL_SMOOTH);
 
     //Material(Color d, Color s, Color a, int n, bool bl=false)
-    fem=Material(Color(0.7,0.7,0.7),Color(0.7,0.7,0.7),Color(0.7,0.7,0.7),10);
 
 	scene=Scene();
 	scene.build();
@@ -600,7 +662,7 @@ void onInitialization( )
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( )
 {
-	glClearColor(0.1f, 0.2f, 0.3f, 1.0f);		// torlesi szin beallitasa
+	glClearColor(1.0, 1.0, 1.0, 1.0f);		// torlesi szin beallitasa
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
 	scene.render();
