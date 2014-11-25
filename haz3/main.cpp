@@ -63,19 +63,19 @@
 // Innentol modosithatod...
 
 struct Matrix {
-	float m[9];
-	Matrix() {}
-	Matrix(float *f, int s=9) {
-		for(int i=0; i<s; i++) {
-			m[i]=f[i];
-		}
-	}
+    float m[9];
+    Matrix() {}
+    Matrix(float *f, int s = 9) {
+        for(int i = 0; i < s; i++) {
+            m[i] = f[i];
+        }
+    }
 
-	Matrix identitiy() {
-		float f[9]= {1,0,0,0,1,0,0,0,1};
-		Matrix a(f,9);
-		return a;
-	}
+    Matrix identitiy() {
+        float f[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
+        Matrix a(f, 9);
+        return a;
+    }
 
 };
 
@@ -84,49 +84,49 @@ struct Matrix {
 //--------------------------------------------------------
 
 struct Vector {
-	float x, y, z;
+    float x, y, z;
 
-	Vector( ) {
-		x = y = z = 0;
-	}
-	Vector(float x0, float y0, float z0 = 0) {
-		x = x0;
-		y = y0;
-		z = z0;
-	}
-	Vector operator*(float a) {
-		return Vector(x * a, y * a, z * a);
-	}
-	Vector operator/(float a) {
-		return Vector(x / a, y / a, z / a);
-	}
-	Vector operator+(const Vector& v) {
-		return Vector(x + v.x, y + v.y, z + v.z);
-	}
-	Vector operator-(const Vector& v) {
-		return Vector(x - v.x, y - v.y, z - v.z);
-	}
-	float operator*(const Vector& v) { 	// dot product
-		return (x * v.x + y * v.y + z * v.z);
-	}
+    Vector( ) {
+        x = y = z = 0;
+    }
+    Vector(float x0, float y0, float z0 = 0) {
+        x = x0;
+        y = y0;
+        z = z0;
+    }
+    Vector operator*(float a) {
+        return Vector(x * a, y * a, z * a);
+    }
+    Vector operator/(float a) {
+        return Vector(x / a, y / a, z / a);
+    }
+    Vector operator+(const Vector &v) {
+        return Vector(x + v.x, y + v.y, z + v.z);
+    }
+    Vector operator-(const Vector &v) {
+        return Vector(x - v.x, y - v.y, z - v.z);
+    }
+    float operator*(const Vector &v) { 	// dot product
+        return (x * v.x + y * v.y + z * v.z);
+    }
 
-	float operator/(const Vector& v) {
-		return (x / v.x + y / v.y + z / v.z);
-	}
+    float operator/(const Vector &v) {
+        return (x / v.x + y / v.y + z / v.z);
+    }
 
-	Vector operator%(const Vector& v) { 	// cross product
-		return Vector(y*v.z-z*v.y, z*v.x - x*v.z, x*v.y - y*v.x);
-	}
-	float Length() {
-		return sqrt(x * x + y * y + z * z);
-	}
-	Vector normalize() {
-		return (*this)*(1.0f/Length());
-	}
+    Vector operator%(const Vector &v) { 	// cross product
+        return Vector(y * v.z - z * v.y, z * v.x - x * v.z, x * v.y - y * v.x);
+    }
+    float Length() {
+        return sqrt(x * x + y * y + z * z);
+    }
+    Vector normalize() {
+        return (*this) * (1.0f / Length());
+    }
 
-	Vector operator*(Matrix m) {
-		return Vector(x*m.m[0]+y*m.m[3]+z*m.m[6],x*m.m[1]+y*m.m[4]+z*m.m[7],x*m.m[2]+y*m.m[5]+z*m.m[8]);
-	}
+    Vector operator*(Matrix m) {
+        return Vector(x * m.m[0] + y * m.m[3] + z * m.m[6], x * m.m[1] + y * m.m[4] + z * m.m[7], x * m.m[2] + y * m.m[5] + z * m.m[8]);
+    }
 
 };
 
@@ -134,394 +134,419 @@ struct Vector {
 // Spektrum illetve szin
 //--------------------------------------------------------
 struct Color {
-	float r, g, b;
+    float r, g, b;
 
-	Color( ) {
-		r = g = b = 0;
-	}
-	Color(float r0, float g0, float b0) {
-		r = r0;
-		g = g0;
-		b = b0;
-	}
-	Color operator*(float a) {
-		return Color(r * a, g * a, b * a);
-	}
-	Color operator*(const Color& c) {
-		return Color(r * c.r, g * c.g, b * c.b);
-	}
-	Color operator+(const Color& c) {
-		return Color(r + c.r, g + c.g, b + c.b);
-	}
+    Color( ) {
+        r = g = b = 0;
+    }
+    Color(float r0, float g0, float b0) {
+        r = r0;
+        g = g0;
+        b = b0;
+    }
+    Color operator*(float a) {
+        return Color(r * a, g * a, b * a);
+    }
+    Color operator*(const Color &c) {
+        return Color(r * c.r, g * c.g, b * c.b);
+    }
+    Color operator+(const Color &c) {
+        return Color(r + c.r, g + c.g, b + c.b);
+    }
 };
 
 const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
-const int NTESS=100;
+const int NTESS = 100;
+bool line = false;
+const int TSIZE=512;
+
 
 struct Object {
-	Vector center;
-	virtual void draw()=0;
+    Vector center;
+    virtual void draw() = 0;
 };
 
 struct Light {
-	GLenum id;
-	Vector pos;
-	Color Ld, La, Ls;
+    GLenum id;
+    Vector pos;
+    Color Ld, La, Ls;
 
-	Light() {}
+    Light() {}
 
-	Light(GLenum i, Vector p, Color d, Color a, Color s) {
-		id=i;
-		pos=p;
-		Ld=d;
-		La=a;
-		Ls=s;
-	}
+    Light(GLenum i, Vector p, Color d, Color a, Color s) {
+        id = i;
+        pos = p;
+        Ld = d;
+        La = a;
+        Ls = s;
+    }
 
-	void setOGL() {
-		float ppos[4] = {pos.x, pos.y, pos.z, 1};
-		float ld[4] = {Ld.r, Ld.g, Ld.b, 0};
-		float la[4] = {La.r, La.g, La.b, 0};
-		float ls[4] = {Ls.r, Ls.g, Ls.b, 0};
-		glLightfv(id, GL_POSITION, ppos);
-		glLightfv(id, GL_DIFFUSE, ld);
-		glLightfv(id, GL_AMBIENT, la);
-		glLightfv(id, GL_SPECULAR, ls);
-		glLightf(id, GL_CONSTANT_ATTENUATION, 0.0f);
-		glLightf(id, GL_QUADRATIC_ATTENUATION, 0.1f);
-		glEnable(id);
-	}
+    void setOGL() {
+        float ppos[4] = {pos.x, pos.y, pos.z, 1};
+        float ld[4] = {Ld.r, Ld.g, Ld.b, 0};
+        float la[4] = {La.r, La.g, La.b, 0};
+        float ls[4] = {Ls.r, Ls.g, Ls.b, 0};
+        glLightfv(id, GL_POSITION, ppos);
+        glLightfv(id, GL_DIFFUSE, ld);
+        glLightfv(id, GL_AMBIENT, la);
+        glLightfv(id, GL_SPECULAR, ls);
+        glLightf(id, GL_CONSTANT_ATTENUATION, 0.0f);
+        glLightf(id, GL_QUADRATIC_ATTENUATION, 0.1f);
+        glEnable(id);
+    }
 };
 
 struct Camera {
 
-	Vector eye, lookat, vup;
-	float fov, asp, fp, bp;
+    Vector eye, lookat, vup;
+    float fov, asp, fp, bp;
 
-	Camera() {}
+    Camera() {}
 
-	Camera(Vector e, Vector l, Vector u) {
-		eye=e;
-		lookat=l;
-		vup=u;
-		fov=90;
-		asp=1;
-		fp=0.1;
-		bp=100;
-	}
+    Camera(Vector e, Vector l, Vector u) {
+        eye = e;
+        lookat = l;
+        vup = u;
+        fov = 90;
+        asp = 1;
+        fp = 0.1;
+        bp = 100;
+    }
 
-	void setOGL() {
+    void setOGL() {
 
-		glMatrixMode(GL_PROJECTION);
-		glLoadIdentity( );
-		gluPerspective(fov, asp, fp, bp);
-		glMatrixMode(GL_MODELVIEW);
-		glLoadIdentity( );
-		gluLookAt(eye.x, eye.y, eye.z, lookat.x, lookat.y, lookat.z, vup.x, vup.y, vup.z);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity( );
+        gluPerspective(fov, asp, fp, bp);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity( );
+        gluLookAt(eye.x, eye.y, eye.z, lookat.x, lookat.y, lookat.z, vup.x, vup.y, vup.z);
 
 
-	}
+    }
 };
 
 
 
 struct Material {
-	Color kd;
-	Color ks;
-	Color ka;
-	int shininess;
+    Color kd;
+    Color ks;
+    Color ka;
+    int shininess;
     bool blended;
-	Material() {}
+    Material() {}
 
-	Material(Color d, Color s, Color a, int n, bool bl=false) {
-		kd=d;
-		ks=s;
-		ka=a;
-		shininess=n;
-		blended=bl;
-	}
+    Material(Color d, Color s, Color a, int n, bool bl = false) {
+        kd = d;
+        ks = s;
+        ka = a;
+        shininess = n;
+        blended = bl;
+    }
 
-	void setOGL() {
-		float d[] = {kd.r, kd.g, kd.b, 1.0};
-		float s[] = {ks.r, ks.g, ks.b, 1.0};
-		float a[] = {ka.r, ka.g, ka.b, 1.0};
+    void setOGL() {
+        float d[] = {kd.r, kd.g, kd.b, 1.0};
+        float s[] = {ks.r, ks.g, ks.b, 1.0};
+        float a[] = {ka.r, ka.g, ka.b, 1.0};
 
-        if(blended){
-            d[3]=s[3]=a[3]=0.2;
+        if(blended) {
+            d[3] = s[3] = a[3] = 0.2;
         }
 
-		glMaterialfv( GL_FRONT, GL_DIFFUSE, d);
-		glMaterialfv( GL_FRONT, GL_SPECULAR, s);
-		glMaterialfv( GL_FRONT, GL_AMBIENT, a);
-		glMaterialf( GL_FRONT, GL_SHININESS, shininess);
+        glMaterialfv( GL_FRONT, GL_DIFFUSE, d);
+        glMaterialfv( GL_FRONT, GL_SPECULAR, s);
+        glMaterialfv( GL_FRONT, GL_AMBIENT, a);
+        glMaterialf( GL_FRONT, GL_SHININESS, shininess);
 
-	}
+    }
 
-	void changeAll(Color c){
-        ka=kd=ks=c;
-	}
+    void changeAll(Color c) {
+        ka = kd = ks = c;
+    }
 };
 
 
 struct Texture {
-	unsigned int text_id;
-	unsigned char tex[256][256][3];
 
-	void gen() {
-		for(int i=0; i<256; i++) {
-			for(int j=0; j<256; j++) {
-					if(j%2==0 && i%4==0){
-                        srand(j);
-                        tex[i][j][0]=0;
-                        tex[i][j][1]=128;
-                        tex[i][j][2]=0;
-					}else{
-                        tex[i][j][0]=255;
-                        tex[i][j][1]=128;
-                        tex[i][j][2]=0;
-					}
+    unsigned int text_id;
+    unsigned char tex[TSIZE][TSIZE][3];
 
+    void genPlanetText() {
+        for(int i = 0; i < TSIZE; i++) {
+            for(int j = 0; j < TSIZE; j++) {
+                if(j % 2 == 0 && i % 4 == 0) {
+                    tex[i][j][0] = 0;
+                    tex[i][j][1] = 128;
+                    tex[i][j][2] = 0;
+                } else {
+                    tex[i][j][0] = 255;
+                    tex[i][j][1] = 128;
+                    tex[i][j][2] = 0;
+                }
+            }
+        }
+    }
 
-			}
-		}
+    void genSkyText() {
+        srand(1);
+        for(int i = 0; i < TSIZE; i++) {
+            for(int j = 0; j < TSIZE; j++) {
+                int star = rand() % 20;
+                if(!star) {
+                    tex[i][j][0] = 255;
+                    tex[i][j][1] = 255;
+                    tex[i][j][2] = 0;
+                } else {
+                    tex[i][j][0] = 0;
+                    tex[i][j][1] = 0;
+                    tex[i][j][2] = 0;
+                }
+            }
+        }
+    }
 
-	}
-
-	void setOGL() {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 256, 0, GL_RGB,GL_UNSIGNED_BYTE, tex);
+    void setOGL() {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TSIZE, TSIZE, 0, GL_RGB, GL_UNSIGNED_BYTE, tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-	}
+    }
 
 };
+
+
 
 struct ParamObject : public Object {
-	Material* mat;
-	Texture* tex;
-	bool hasMater;
-	bool hasText;
+    Material *mat;
+    Texture *tex;
+    bool hasMater;
+    bool hasText;
 
-	virtual Vector getNormal(float x, float y, float z)=0;
+    virtual Vector getNormal(float x, float y, float z) = 0;
 
-	void draw() {
-		if(hasMater) {
-			mat->setOGL();
-		}
+    void draw() {
+        if(hasMater) {
+            mat->setOGL();
+        }
 
-		if(hasText) {
-			tex->setOGL();
-		}
-
-		glBegin(GL_QUADS);
-		for(int i=0; i<NTESS; i++) {
-			for(int j=0; j<NTESS; j++) {
-				VertexOGL( (float)i/NTESS, (float)j/NTESS );
-				VertexOGL( (float)(i+1)/NTESS, (float)j/NTESS );
-				VertexOGL( (float)(i+1)/NTESS, (float)(j+1)/NTESS );
-				VertexOGL( (float)i/NTESS, (float)(j+1)/NTESS );
-			}
-		}
-		glEnd();
-	}
-	virtual void VertexOGL(float u, float v)=0;
-		virtual ~ParamObject(){}
+        if(hasText) {
+            tex->setOGL();
+        }
+        if(line) {
+            glBegin(GL_LINE_STRIP);
+        } else {
+            glBegin(GL_QUADS);
+        }
+        for(int i = 0; i < NTESS; i++) {
+            for(int j = 0; j < NTESS; j++) {
+                VertexOGL( (float)i / NTESS, (float)j / NTESS );
+                VertexOGL( (float)(i + 1) / NTESS, (float)j / NTESS );
+                VertexOGL( (float)(i + 1) / NTESS, (float)(j + 1) / NTESS );
+                VertexOGL( (float)i / NTESS, (float)(j + 1) / NTESS );
+            }
+        }
+        glEnd();
+    }
+    virtual void VertexOGL(float u, float v) = 0;
+    virtual ~ParamObject() {}
 };
 
 
-struct CRTest :public ParamObject {
-	CRTest(Material *m) {
-		mat=m;
-	}
-	void VertexOGL(float u, float v) {}
+struct CRTest : public ParamObject {
+    CRTest(Material *m) {
+        mat = m;
+    }
+    void VertexOGL(float u, float v) {}
 };
 
 
-struct Gomb :public ParamObject {
-	float r;
+struct Gomb : public ParamObject {
+    float r;
 
 
 
-	Vector getNormal(float x, float y, float z) {
+    Vector getNormal(float x, float y, float z) {
 
-	}
+    }
 
-	Gomb(Vector c,Material *m, float rx, Texture* t=NULL) {
-		if(m) {
-			mat=m;
-			hasMater=true;
-		} else {
-			hasMater=false;
-		}
-		if(t) {
-			hasText=true;
-			tex=t;
-		} else {
-			hasText=false;
-		}
-		r=rx;
-		center=c;
-	}
+    Gomb(Vector c, Material *m, float rx, Texture *t = NULL) {
+        if(m) {
+            mat = m;
+            hasMater = true;
+        } else {
+            hasMater = false;
+        }
+        if(t) {
+            hasText = true;
+            tex = t;
+        } else {
+            hasText = false;
+        }
+        r = rx;
+        center = c;
+    }
 
-	void VertexOGL(float u, float v) {
-		glTexCoord2f(u,v);
-		//x(u, v) = r · sin vπ · cos 2πu, y(u, v) = r · sin vπ · sin 2πu, z(u, v) = r · cos vπ.
-		float x=r*sin(v*M_PI)*cos(2*M_PI*u)+center.x;
-		float y=r*sin(v*M_PI)*sin(2*M_PI*u)+center.y;
-		float z=r*cos(v*M_PI)+center.z;
+    void VertexOGL(float u, float v) {
+        glTexCoord2f(u, v);
+        //x(u, v) = r · sin vπ · cos 2πu, y(u, v) = r · sin vπ · sin 2πu, z(u, v) = r · cos vπ.
+        float x = r * sin(v * M_PI) * cos(2 * M_PI * u) + center.x;
+        float y = r * sin(v * M_PI) * sin(2 * M_PI * u) + center.y;
+        float z = r * cos(v * M_PI) + center.z;
 
-		Vector n(x,y,z);
-		n=n-center;
-		glNormal3f(n.x,n.y,n.z);
-		glVertex3f(x, y, z);
+        Vector n(x, y, z);
+        n = n - center;
+        glNormal3f(n.x, n.y, n.z);
+        glVertex3f(x, y, z);
 
-	}
+    }
 
 };
 
-struct Henger :public ParamObject {
+struct Henger : public ParamObject {
 
     float h;
     Vector irany;
     float R;
 
-	Henger(Material *m, Vector c, float hx,float r, Vector i) {
-	    center=c;
-	    h=hx;
-	    irany=i.normalize();
-		mat=m;
-		R=r;
+    Henger(Material *m, Vector c, float hx, float r, Vector i) {
+        center = c;
+        h = hx;
+        irany = i.normalize();
+        mat = m;
+        R = r;
         if(m) {
-			mat=m;
-			hasMater=true;
-		} else {
-			hasMater=false;
-		}
-        hasText=false;
-	}
+            mat = m;
+            hasMater = true;
+        } else {
+            hasMater = false;
+        }
+        hasText = false;
+    }
 
-    Vector getNormal(float x, float y, float z){
-        if(z<center.z+0.001){
+    Vector getNormal(float x, float y, float z) {
+        if(z < 0.001) {
             return irany;
         }
-        if(z>center.z+h-0.001){
-            return irany*-1;
+        if(z > h - 0.001) {
+            return irany * -1;
         }
-        return Vector(x,y,center.z)-center;
+        return Vector(x, y, 0);
 
     }
     //center==talppont
     //x=R·cos2piu y=R·sin2piu z=h·v
-	void VertexOGL(float u, float v) {
-        float x=R*cos(2*M_PI*u)+center.x;
-        float y=R*sin(2*M_PI*u)+center.y;
-        float z=h*v+center.z;
+    void VertexOGL(float u, float v) {
+        float x = R * cos(2 * M_PI * u);
+        float y = R * sin(2 * M_PI * u);
+        float z = h * v;
 
-        Vector n=getNormal(x,y,z);
-		glNormal3f(n.x,n.y,n.z);
-		glVertex3f(x, y, z);
-	}
+        Vector n = getNormal(x, y, z);
+        glNormal3f(n.x, n.y, n.z);
+        glVertex3f(x, y, z);
+    }
 
 };
 
-struct Napelem :public ParamObject {
+struct Napelem : public ParamObject {
 
-	Napelem(Material *m) {
-		mat=m;
-	}
+    Napelem(Material *m) {
+        mat = m;
+    }
 
-	Vector getNormal(){}
+    Vector getNormal() {}
 
-	void VertexOGL(float u, float v) {}
+    void VertexOGL(float u, float v) {}
 };
 
 struct MIR {
-    CRTest* test;
-    Napelem* napelemek[2];
+    CRTest *test;
+    Napelem *napelemek[2];
     Vector center;
 
-    void build(){
+    void build() {
 
     }
 
-    void draw(){
+    void draw() {
 
     }
 };
 
 struct Muhold {
-    Gomb* test;
-    Henger* fuvokak[6];
+    Gomb *test;
+    Henger *fuvokak[6];
     Vector center;
     float r;
     Material testm;
     Material fuvokam;
 
-    Muhold(Vector c){
-        center=c;
-        r=1;
+    Muhold(Vector c) {
+        center = c;
+        r = 1;
     }
 
-    void build(){
-        testm=Material(Color(0.3,0.3,0),Color(0.1,0,0),Color(0,0,0.1),100);
-        fuvokam=Material(Color(1,0,0),Color(1,0,0),Color(1,0,0),10);
-        test=new Gomb(center, &testm ,r, NULL);
+    void build() {
+        testm = Material(Color(0.3, 0.3, 0), Color(0.1, 0, 0), Color(0, 0, 0.1), 100);
+        fuvokam = Material(Color(1, 0, 0), Color(1, 0, 0), Color(1, 0, 0), 10);
+        test = new Gomb(center, &testm , r, NULL);
         //Henger(Material *m, Vector c, float hx,float r, Vector i)
 
-        fuvokak[0]=new Henger(&fuvokam, Vector(center.x+r,center.y,center.z), r/2, r/10, Vector(r,0,0));
-        fuvokak[1]=new Henger(&fuvokam, Vector(center.x-r,center.y,center.z), r/2, r/10, Vector(-r,0,0));
+        fuvokak[0] = new Henger(&fuvokam, Vector(center.x + r, center.y, center.z), r / 2, r / 10, Vector(r, 0, 0));
+        fuvokak[1] = new Henger(&fuvokam, Vector(center.x - r, center.y, center.z), r / 2, r / 10, Vector(-r, 0, 0));
 
-        fuvokak[2]=new Henger(&fuvokam, Vector(center.x,center.y+r,center.z), r/2, r/10, Vector(0,r,0));
-        fuvokak[3]=new Henger(&fuvokam, Vector(center.x,center.y-r,center.z), r/2, r/10, Vector(0,-r,0));
+        fuvokak[2] = new Henger(&fuvokam, Vector(center.x, center.y + r, center.z), r / 2, r / 10, Vector(0, r, 0));
+        fuvokak[3] = new Henger(&fuvokam, Vector(center.x, center.y - r, center.z), r / 2, r / 10, Vector(0, -r, 0));
 
-        fuvokak[4]=new Henger(&fuvokam, Vector(center.x,center.y,center.z+r), r/2, r/10, Vector(0,0,r));
-        fuvokak[5]=new Henger(&fuvokam, Vector(center.x,center.y,center.z-r), r/2, r/10, Vector(0,0,-r));
+        fuvokak[4] = new Henger(&fuvokam, Vector(center.x, center.y, center.z + r), r / 2, r / 10, Vector(0, 0, r));
+        fuvokak[5] = new Henger(&fuvokam, Vector(center.x, center.y, center.z - r), r / 2, r / 10, Vector(0, 0, -r));
 
 
 
     }
 
-    void draw(){
+    void draw() {
 
         test->draw();
-        for(int i=0;i<6;i++){
-            Vector c=fuvokak[i]->center;
+        for(int i = 0; i < 6; i++) {
+            Vector c = fuvokak[i]->center;
             glPushMatrix();
 
             glMatrixMode(GL_MODELVIEW);
 
-            switch(i){
-            case 0:
+            switch(i) {
+                case 0:
+                    fuvokam = Material(Color(1, 0, 0), Color(1, 0, 0), Color(1, 0, 0), 10);
 //                glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                glTranslatef(center.x,center.y,center.z+r);
-                glRotatef(90,0,1,0);
-                break;
-            case 1:
-                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                glTranslatef(center.x,center.y,center.z+r);
-                glRotatef(-90,0,1,0);
-                break;
-            case 2:
-                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                glTranslatef(center.x,center.y,center.z+r);
-                glRotatef(-90,1,0,0);
-                fuvokam.changeAll(Color(0,1,0));
-                break;
-            case 3:
-                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                glTranslatef(center.x,center.y,center.z+r);
-                glRotatef(90,1,0,0);
-                break;
-            case 4:
-                glRotatef(0,1,0,0);
-                fuvokam.changeAll(Color(0,0,1));
-                break;
-            case 5:
-                //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z-r);
-                glTranslatef(center.x,center.y,center.z-r);
-                glRotatef(180,0,1,0);
-                break;
+                    glTranslatef(c.x, c.y, c.z);
+                    glRotatef(90, 0, 1, 0);
+                    break;
+                case 1:
+                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                    glTranslatef(c.x, c.y, c.z);
+                    glRotatef(-90, 0, 1, 0);
+                    break;
+                case 2:
+                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                    glTranslatef(c.x, c.y, c.z);
+                    glRotatef(-90, 1, 0, 0);
+                    fuvokam.changeAll(Color(0, 1, 0));
+                    break;
+                case 3:
+                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
+                    glTranslatef(c.x, c.y, c.z);
+                    glRotatef(90, 1, 0, 0);
+                    break;
+                case 4:
+                    glTranslatef(c.x, c.y, c.z);
+                    glRotatef(0, 1, 0, 0);
+                    fuvokam.changeAll(Color(0, 0, 1));
+                    break;
+                case 5:
+                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z-r);
+                    glTranslatef(c.x, c.y, c.z);
+                    glRotatef(180, 0, 1, 0);
+                    break;
             }
 
             fuvokak[i]->draw();
@@ -529,7 +554,7 @@ struct Muhold {
         }
     }
 
-    ~Muhold(){
+    ~Muhold() {
         delete test;
         delete[] fuvokak;
     }
@@ -538,29 +563,30 @@ struct Muhold {
 
 
 struct Scene {
-	Camera* camera;
+    Camera *camera;
 
 //	Light* lights[10];
 //	int lightnum;
 //
-	Object* objects[10];
-	int objectnum;
+    Object *objects[10];
+    int objectnum;
 
-
-    Light* Sun;
-    Gomb* planet;
-    Gomb* Legkor;
-    Muhold* muhold;
-    MIR* mir;
+    Gomb *Sky;
+    Light *Sun;
+    Gomb *planet;
+    Gomb *Legkor;
+    Muhold *muhold;
+    MIR *mir;
 
     Material legkor;
     Material planetMaterial;
     Texture planetTexture;
+    Texture skyTexture;
 
-	Scene() {
+    Scene() {
 //		lightnum=0;
-		objectnum=0;
-	}
+        objectnum = 0;
+    }
 
 //	void addLight(Light *l) {
 //		if(lightnum<10) {
@@ -574,87 +600,96 @@ struct Scene {
 //		}
 //	}
 
-	void build() {
-		camera= new Camera(Vector(0,3,10),Vector(0,0,0),Vector(0,0,1));
-		Sun=new Light(GL_LIGHT0,Vector(0,4,5),Color(10,10,10),Color(10,10,10),Color(10,10,10));
+    void build() {
+        camera = new Camera(Vector(0, -10, 3), Vector(0, 0, 0), Vector(0, 0, 1));
+        Sun = new Light(GL_LIGHT0, Vector(4, -2, 5), Color(10, 10, 10), Color(10, 10, 10), Color(10, 10, 10));
+        Sky = new Gomb(Vector(0, 0, 0), &planetMaterial, 30, &skyTexture);
+
+        glGenTextures(1, &(skyTexture.text_id));
+        glBindTexture(GL_TEXTURE_2D, skyTexture.text_id);
+        skyTexture.genSkyText();
 
 
         //Henger(Material *m, Vector c, float hx,float r, Vector i)
 //        Material fem=Material(Color(0,0,0),Color(0,0,0),Color(0,0,0),1);
 //       objects[objectnum++]=new Henger(&fem, Vector(0,0,0), 1, 0.5, Vector(0,0,1));
 
-        muhold=new Muhold(Vector(0,0,0));
+        muhold = new Muhold(Vector(-3, -3, 0));
         muhold->build();
 
-		planetMaterial=Material(Color(1,0.5,0),Color(0,0,0),Color(0,0,0),100);
-		planet=new Gomb(Vector(0,0,-8),&planetMaterial,2,&planetTexture);
+        planetMaterial = Material(Color(1, 0.5, 0), Color(0, 0, 0), Color(0, 0, 0), 100);
+        planet = new Gomb(Vector(0, 0, -10), &planetMaterial, 8, &planetTexture);
+
+        glGenTextures(2, &(planetTexture.text_id));
+        glBindTexture(GL_TEXTURE_2D, planetTexture.text_id);
+        planetTexture.genPlanetText();
 
 
-		glGenTextures(1, &(planetTexture.text_id));
-		glBindTexture(GL_TEXTURE_2D,planetTexture.text_id);
-		planetTexture.gen();
 
 
-        glClearColor(0.0,0.0,0.0,0.0);
-        legkor=Material(Color(0,0,1),Color(0,0,1),Color(0,0,1),10, true);
-        Legkor=new Gomb(planet->center,&legkor,planet->r+0.1,NULL);
-	}
+        glClearColor(0.0, 0.0, 0.0, 0.0);
+        legkor = Material(Color(0, 0, 1), Color(0, 0, 1), Color(0, 0, 1), 10, true);
+        Legkor = new Gomb(planet->center, &legkor, planet->r + 0.2, NULL);
+    }
 
-	void render() {
-		camera->setOGL();
+    void render() {
+        camera->setOGL();
         Sun->setOGL();
 //		for(int i=0; i<lightnum; i++) {
 //			lights[i]->setOGL();
 //		}
-        glPushMatrix();
-        glMatrixMode(GL_MODELVIEW);
-            glEnable(GL_TEXTURE_2D);
-            planet->draw();
-            glDisable(GL_TEXTURE_2D);
+        glDisable(GL_LIGHTING);
+        glEnable(GL_TEXTURE_2D);
+        Sky->draw();
+        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_LIGHTING);
 
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-                Legkor->draw();
-            glDisable(GL_BLEND);
-        glPopMatrix();
+        glEnable(GL_TEXTURE_2D);
+        planet->draw();
+        glDisable(GL_TEXTURE_2D);
 
-		for(int i=0; i<objectnum; i++) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        Legkor->draw();
+        glDisable(GL_BLEND);
 
-			objects[i]->draw();
-		}
+        for(int i = 0; i < objectnum; i++) {
+
+            objects[i]->draw();
+        }
         muhold->draw();
 
 
-	}
+    }
 
-	~Scene() {
+    ~Scene() {
 //		delete[] lights;
-		delete[] objects;
+        delete[] objects;
         delete Sun;
         delete planet;
         delete Legkor;
-
-		delete camera;
+        delete Sky;
+        delete camera;
 //		lightnum=0;
-        objectnum=0;
-	}
+        objectnum = 0;
+    }
 };
 
 Scene scene;
 // Inicializacio, a program futasanak kezdeten, az OpenGL kontextus letrehozasa utan hivodik meg (ld. main() fv.)
 void onInitialization( )
 {
-	glViewport(0, 0, screenWidth, screenHeight);
-	glDisable(GL_CULL_FACE);
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_NORMALIZE);
-	glEnable(GL_LIGHTING);
-	glShadeModel(GL_SMOOTH);
+    glViewport(0, 0, screenWidth, screenHeight);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_NORMALIZE);
+    glEnable(GL_LIGHTING);
+    glShadeModel(GL_SMOOTH);
 
-    //Material(Color d, Color s, Color a, int n, bool bl=false)
 
-	scene=Scene();
-	scene.build();
+
+    scene = Scene();
+    scene.build();
 
 
 }
@@ -662,18 +697,23 @@ void onInitialization( )
 // Rajzolas, ha az alkalmazas ablak ervenytelenne valik, akkor ez a fuggveny hivodik meg
 void onDisplay( )
 {
-	glClearColor(1.0, 1.0, 1.0, 1.0f);		// torlesi szin beallitasa
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
+    glClearColor(1.0, 1.0, 1.0, 1.0f);		// torlesi szin beallitasa
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // kepernyo torles
 
-	scene.render();
-	glutSwapBuffers();     				// Buffercsere: rajzolas vege
+    scene.render();
+    glutSwapBuffers();     				// Buffercsere: rajzolas vege
 
 }
 
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
-	if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+    if (key == 'l') {
+        line = !line;
+        glutPostRedisplay( );
+    }
+
 
 }
 
@@ -686,8 +726,8 @@ void onKeyboardUp(unsigned char key, int x, int y)
 // Eger esemenyeket lekezelo fuggveny
 void onMouse(int button, int state, int x, int y)
 {
-	if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)   // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
-		glutPostRedisplay( ); 						 // Ilyenkor rajzold ujra a kepet
+    if (button == GLUT_LEFT_BUTTON && state == GLUT_DOWN)   // A GLUT_LEFT_BUTTON / GLUT_RIGHT_BUTTON illetve GLUT_DOWN / GLUT_UP
+        glutPostRedisplay( ); 						 // Ilyenkor rajzold ujra a kepet
 }
 
 // Eger mozgast lekezelo fuggveny
@@ -699,7 +739,7 @@ void onMouseMotion(int x, int y)
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( )
 {
-	long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+    long time = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
 
 }
 
@@ -709,29 +749,29 @@ void onIdle( )
 // A C++ program belepesi pontja, a main fuggvenyt mar nem szabad bantani
 int main(int argc, char **argv)
 {
-	glutInit(&argc, argv); 				// GLUT inicializalasa
-	glutInitWindowSize(600, 600);			// Alkalmazas ablak kezdeti merete 600x600 pixel
-	glutInitWindowPosition(100, 100);			// Az elozo alkalmazas ablakhoz kepest hol tunik fel
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);	// 8 bites R,G,B,A + dupla buffer + melyseg buffer
+    glutInit(&argc, argv); 				// GLUT inicializalasa
+    glutInitWindowSize(600, 600);			// Alkalmazas ablak kezdeti merete 600x600 pixel
+    glutInitWindowPosition(100, 100);			// Az elozo alkalmazas ablakhoz kepest hol tunik fel
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);	// 8 bites R,G,B,A + dupla buffer + melyseg buffer
 
-	glutCreateWindow("Grafika hazi feladat");		// Alkalmazas ablak megszuletik es megjelenik a kepernyon
+    glutCreateWindow("Grafika hazi feladat");		// Alkalmazas ablak megszuletik es megjelenik a kepernyon
 
-	glMatrixMode(GL_MODELVIEW);				// A MODELVIEW transzformaciot egysegmatrixra inicializaljuk
-	glLoadIdentity();
-	glMatrixMode(GL_PROJECTION);			// A PROJECTION transzformaciot egysegmatrixra inicializaljuk
-	glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);				// A MODELVIEW transzformaciot egysegmatrixra inicializaljuk
+    glLoadIdentity();
+    glMatrixMode(GL_PROJECTION);			// A PROJECTION transzformaciot egysegmatrixra inicializaljuk
+    glLoadIdentity();
 
-	onInitialization();					// Az altalad irt inicializalast lefuttatjuk
+    onInitialization();					// Az altalad irt inicializalast lefuttatjuk
 
-	glutDisplayFunc(onDisplay);				// Esemenykezelok regisztralasa
-	glutMouseFunc(onMouse);
-	glutIdleFunc(onIdle);
-	glutKeyboardFunc(onKeyboard);
-	glutKeyboardUpFunc(onKeyboardUp);
-	glutMotionFunc(onMouseMotion);
+    glutDisplayFunc(onDisplay);				// Esemenykezelok regisztralasa
+    glutMouseFunc(onMouse);
+    glutIdleFunc(onIdle);
+    glutKeyboardFunc(onKeyboard);
+    glutKeyboardUpFunc(onKeyboardUp);
+    glutMotionFunc(onMouseMotion);
 
-	glutMainLoop();					// Esemenykezelo hurok
+    glutMainLoop();					// Esemenykezelo hurok
 
-	return 0;
+    return 0;
 }
 
