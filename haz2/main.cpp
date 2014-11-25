@@ -872,7 +872,7 @@ Ellipszoid Ecactus[11];
 
 void buidCactuses()
 {
-	srand(1);
+	srand(2);
 
 	float R=0.2;
 	float h=1;
@@ -971,8 +971,8 @@ void onInitialization( )
     scene.addObject(&flor);
 	buidCactuses();
 
-	light1=Light(Color(10,0,0),Vector(5,3,-5));
-	light2=Light(Color(0,10,0),Vector(5,3,-5));
+	light1=Light(Color(10,0,0),Vector(5,3,5));
+	light2=Light(Color(0,10,0),Vector(-5,3,-5));
 	light3=Light(Color(0,0,10),Vector(5,3,-5));
 
 	scene.addLight(light1);

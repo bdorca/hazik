@@ -159,7 +159,7 @@ const int screenWidth = 600;	// alkalmazás ablak felbontása
 const int screenHeight = 600;
 const int NTESS = 100;
 bool line = false;
-const int TSIZE=512;
+const int TSIZE = 512;
 
 
 struct Object {
@@ -275,7 +275,7 @@ struct Texture {
     void genPlanetText() {
         for(int i = 0; i < TSIZE; i++) {
             for(int j = 0; j < TSIZE; j++) {
-                if(j % 2 == 0 && i % 4 == 0) {
+                if(j % 4 == 0 && i % 4 == 0) {
                     tex[i][j][0] = 0;
                     tex[i][j][1] = 128;
                     tex[i][j][2] = 0;
@@ -292,11 +292,11 @@ struct Texture {
         srand(1);
         for(int i = 0; i < TSIZE; i++) {
             for(int j = 0; j < TSIZE; j++) {
-                int star = rand() % 20;
+                int star = rand() % 100;
                 if(!star) {
                     tex[i][j][0] = 255;
                     tex[i][j][1] = 255;
-                    tex[i][j][2] = 0;
+                    tex[i][j][2] = 255;
                 } else {
                     tex[i][j][0] = 0;
                     tex[i][j][1] = 0;
@@ -353,7 +353,85 @@ struct ParamObject : public Object {
 };
 
 
+//-------------------------------------
+
+struct CatmullRom {
+    float time[10];
+    Vector controlPoints[10];
+    int pointnum;
+
+    Vector As[4];
+
+    CatmullRom(){
+        for(int i=0;i<10;i++){
+            time[i]=i/10;
+        }
+    }
+
+    Vector A0(Vector x) {
+        return x;
+    }
+
+    Vector A1(Vector v) {
+        return v;
+    }
+
+    Vector A2(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
+        return (xii - xi) * 3 * (1.0 / pow(tii - ti, 2.0)) - (vii + vi * 2) * (1.0 / (tii - ti));
+    }
+
+    Vector A3(Vector xi, Vector xii, Vector vi, Vector vii, float ti, float tii) {
+        return (xi - xii) * 2 * (1.0 / pow(tii - ti, 3.0)) + (vii + vi) * (1.0 / pow(tii - ti, 2.0));
+    }
+
+    Vector V(int i) {
+        return  ((controlPoints[i+1] - controlPoints[i]) * (1.0 / (time[i+1] - time[i])) + (controlPoints[i] - controlPoints[i-1]) * (1.0 / (time[i] - time[i-1]))) * 0.5;
+    }
+
+    Vector r(int i, float t) {
+        Vector r = As[0] + As[1] * (t - time[i-1]) + As[2] * pow(t - time[i-1], 2.0) + As[3] * pow(t - time[i-1], 3.0);
+        return r;
+    }
+
+    void computeAs(int i) {
+        Vector v;
+        Vector vi;
+        if(i == 1) {
+            v = Vector(0, 0);
+        } else {
+            v = V(i - 1);
+        }
+        if(i == pointnum - 1) {
+            vi = Vector(0, 0);
+        } else {
+            vi = V(i);
+        }
+        As[0] = A0(controlPoints[i-1]);
+        As[1] = A1(v);
+        As[2] = A2(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
+        As[3] = A3(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
+    }
+};
+
+void drawCatmullRom(CatmullRom cr) {
+    if(cr.pointnum >= 2) {
+        int osztas = 100;
+        for(int i = 1; i < cr.pointnum; i++) {
+            float t = cr.time[i];
+            float tdiff = (float) (cr.time[i] - cr.time[i-1]) / (float) osztas;
+            cr.computeAs(i);
+            for(int j = 0; j < osztas; j++) {
+                t = cr.time[i-1] + j * tdiff;
+                Vector p = cr.r(i, t);
+            }
+        }
+    }
+}
+
+//-------------------------------------
+
 struct CRTest : public ParamObject {
+    CatmullRom cr;
     CRTest(Material *m) {
         mat = m;
     }
@@ -513,38 +591,28 @@ struct Muhold {
             glPushMatrix();
 
             glMatrixMode(GL_MODELVIEW);
+            glTranslatef(c.x, c.y, c.z);
 
             switch(i) {
                 case 0:
                     fuvokam = Material(Color(1, 0, 0), Color(1, 0, 0), Color(1, 0, 0), 10);
-//                glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                    glTranslatef(c.x, c.y, c.z);
                     glRotatef(90, 0, 1, 0);
                     break;
                 case 1:
-                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                    glTranslatef(c.x, c.y, c.z);
                     glRotatef(-90, 0, 1, 0);
                     break;
                 case 2:
-                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                    glTranslatef(c.x, c.y, c.z);
                     glRotatef(-90, 1, 0, 0);
                     fuvokam.changeAll(Color(0, 1, 0));
                     break;
                 case 3:
-                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z+r);
-                    glTranslatef(c.x, c.y, c.z);
                     glRotatef(90, 1, 0, 0);
                     break;
                 case 4:
-                    glTranslatef(c.x, c.y, c.z);
                     glRotatef(0, 1, 0, 0);
                     fuvokam.changeAll(Color(0, 0, 1));
                     break;
                 case 5:
-                    //glTranslatef(c.x+center.x,c.y+center.y,c.z+center.z-r);
-                    glTranslatef(c.x, c.y, c.z);
                     glRotatef(180, 0, 1, 0);
                     break;
             }
@@ -602,8 +670,8 @@ struct Scene {
 
     void build() {
         camera = new Camera(Vector(0, -10, 3), Vector(0, 0, 0), Vector(0, 0, 1));
-        Sun = new Light(GL_LIGHT0, Vector(4, -2, 5), Color(10, 10, 10), Color(10, 10, 10), Color(10, 10, 10));
-        Sky = new Gomb(Vector(0, 0, 0), &planetMaterial, 30, &skyTexture);
+        Sun = new Light(GL_LIGHT0, Vector(4, -2, 5), Color(20, 20, 20), Color(20, 20, 20), Color(20, 20, 20));
+        Sky = new Gomb(Vector(0, 0, 0), &planetMaterial, 50, &skyTexture);
 
         glGenTextures(1, &(skyTexture.text_id));
         glBindTexture(GL_TEXTURE_2D, skyTexture.text_id);
