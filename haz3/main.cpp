@@ -62,6 +62,8 @@
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Innentol modosithatod...
 
+#include <iostream>
+
 struct Matrix {
     float m[9];
     Matrix() {}
@@ -161,6 +163,10 @@ const int NTESS = 100;
 bool line = false;
 const int TSIZE = 512;
 
+
+void glVertex3f(Vector v){
+    glVertex3f(v.x,v.y,v.z);
+}
 
 struct Object {
     Vector center;
@@ -327,11 +333,17 @@ struct ParamObject : public Object {
 
     void draw() {
         if(hasMater) {
+            glEnable(GL_LIGHTING);
             mat->setOGL();
+        }else{
+            glDisable(GL_LIGHTING);
         }
 
         if(hasText) {
+            glEnable(GL_TEXTURE_2D);
             tex->setOGL();
+        }else{
+            glDisable(GL_TEXTURE_2D);
         }
         if(line) {
             glBegin(GL_LINE_STRIP);
@@ -362,10 +374,27 @@ struct CatmullRom {
 
     Vector As[4];
 
-    CatmullRom(){
-        for(int i=0;i<10;i++){
-            time[i]=i/10;
+
+    CatmullRom() {
+        pointnum = 10;
+        for(int i = 0; i < pointnum; i++) {
+            time[i] = (float)i / (float)pointnum;
         }
+
+
+        controlPoints[0] = Vector(0, 0, 0);
+        controlPoints[1] = Vector(0.5, 0, 0.5);
+        controlPoints[2] = Vector(1, 0, 1);
+        controlPoints[3] = Vector(1.3, 0, 1.5);
+        controlPoints[4] = Vector(1.2, 0, 2);
+        controlPoints[5] = Vector(1, 0, 2.5);
+        controlPoints[6] = Vector(0.8, 0, 3);
+        controlPoints[7] = Vector(0.2, 0, 3.5);
+        controlPoints[8] = Vector(0.5, 0, 4);
+        controlPoints[9] = Vector(0, 0, 4.5);
+
+
+
     }
 
     Vector A0(Vector x) {
@@ -406,46 +435,105 @@ struct CatmullRom {
         } else {
             vi = V(i);
         }
+
+
         As[0] = A0(controlPoints[i-1]);
         As[1] = A1(v);
         As[2] = A2(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
         As[3] = A3(controlPoints[i-1], controlPoints[i], v, vi, time[i-1], time[i]);
     }
+
+    Vector deriveR(int i, float t) {
+        Vector dr = As[1] + As[2] * (t - time[i-1]) * 2 + As[3] * pow(t - time[i-1], 2.0) * 3;
+        return dr;
+
+    }
+
+
 };
 
-void drawCatmullRom(CatmullRom cr) {
-    if(cr.pointnum >= 2) {
-        int osztas = 100;
-        for(int i = 1; i < cr.pointnum; i++) {
-            float t = cr.time[i];
-            float tdiff = (float) (cr.time[i] - cr.time[i-1]) / (float) osztas;
-            cr.computeAs(i);
-            for(int j = 0; j < osztas; j++) {
-                t = cr.time[i-1] + j * tdiff;
-                Vector p = cr.r(i, t);
-            }
-        }
-    }
-}
 
 //-------------------------------------
 
 struct CRTest : public ParamObject {
+
     CatmullRom cr;
-    CRTest(Material *m) {
-        mat = m;
+
+
+    CRTest(Material *m, Texture *t = NULL, Vector c = Vector(0, 0, 0)) {
+        center = c;
+        if(m) {
+            mat = m;
+            hasMater = true;
+        } else {
+            hasMater = false;
+        }
+        if(t) {
+            hasText = true;
+            tex = t;
+        } else {
+            hasText = false;
+        }
     }
-    void VertexOGL(float u, float v) {}
+
+    Vector getNormal(float x, float y, float z) {}
+
+    Vector getNormal(float x, float y, float z, int i, float t) {
+        Vector dr = cr.deriveR(i, t);
+        Vector meroleges = Vector(x, y, 0);
+        Vector v2 = dr % meroleges;
+        Vector n = v2 % dr;
+        return n;
+    }
+
+
+    void VertexOGL(float u, float v) {
+        int ind = -1;
+        for(int i = 1; i < cr.pointnum; i++) {
+            if(v >= cr.time[i-1] && v <= cr.time[i]) {
+                ind = i;
+            }
+        }
+        if(ind == -1 && v >= cr.time[cr.pointnum-1]) {
+            ind = cr.pointnum - 1;
+            v = cr.time[ind];
+        }
+
+        cr.computeAs(ind);
+
+
+        float t = v;
+        Vector p = cr.r(ind, t);
+        float R = p.x;
+
+        float z = p.z;
+        float x = R * cos(2 * M_PI * u);
+        float y = R * sin(2 * M_PI * u);
+
+        Vector n = getNormal(x, y, z, ind, t);
+
+        if(y<0 && ((x-0)*(x-0)+(z-1.5)*(z-1.5))<0.5*0.5){
+            //std::cout<<x<<" "<<y<<" "<<z<<std::endl;
+            //n=Vector(0,0,0);
+            glColor3f(0,0,0);
+        }
+
+        glNormal3f(n.x, n.y, n.z);
+
+
+        glVertex3f(center+Vector(x, y, z));
+
+    }
 };
 
 
 struct Gomb : public ParamObject {
     float r;
 
-
-
     Vector getNormal(float x, float y, float z) {
-
+        Vector n(x, y, z);
+        n = n - center;
+        return n;
     }
 
     Gomb(Vector c, Material *m, float rx, Texture *t = NULL) {
@@ -472,8 +560,8 @@ struct Gomb : public ParamObject {
         float y = r * sin(v * M_PI) * sin(2 * M_PI * u) + center.y;
         float z = r * cos(v * M_PI) + center.z;
 
-        Vector n(x, y, z);
-        n = n - center;
+        Vector n = getNormal(x, y, z);
+
         glNormal3f(n.x, n.y, n.z);
         glVertex3f(x, y, z);
 
@@ -526,28 +614,141 @@ struct Henger : public ParamObject {
 
 };
 
-struct Napelem : public ParamObject {
+struct Teglatest : public ParamObject {
 
-    Napelem(Material *m) {
-        mat = m;
+    float A;
+    float B;
+    float C;
+    Vector sarok[8];
+
+    Teglatest(Material *m, Vector c, float ax, float bx, float cx, Texture *t = NULL ) {
+        A=ax;
+        B=bx;
+        C=cx;
+        center=c;
+
+        if(m) {
+            mat = m;
+            hasMater = true;
+        } else {
+            hasMater = false;
+        }
+        if(t) {
+            hasText = true;
+            tex = t;
+        } else {
+            hasText = false;
+        }
+
+        sarok[0]=Vector(center.x-A/2,center.y-B/2,center.z-C/2);
+        sarok[1]=Vector(center.x-A/2,center.y+B/2,center.z-C/2);
+        sarok[2]=Vector(center.x-A/2,center.y+B/2,center.z+C/2);
+        sarok[3]=Vector(center.x-A/2,center.y-B/2,center.z+C/2);
+
+        sarok[4]=Vector(center.x+A/2,center.y-B/2,center.z-C/2);
+        sarok[5]=Vector(center.x+A/2,center.y+B/2,center.z-C/2);
+        sarok[6]=Vector(center.x+A/2,center.y+B/2,center.z+C/2);
+        sarok[7]=Vector(center.x+A/2,center.y-B/2,center.z+C/2);
+
     }
 
-    Vector getNormal() {}
+    void draw(){
+        if(hasMater) {
+            glEnable(GL_LIGHTING);
+            mat->setOGL();
+        }else{
+            glDisable(GL_LIGHTING);
+        }
+
+        if(hasText) {
+            glEnable(GL_TEXTURE_2D);
+            tex->setOGL();
+        }else{
+            glDisable(GL_TEXTURE_2D);
+        }
+
+        if(line) {
+            glBegin(GL_LINE_STRIP);
+        } else {
+            glBegin(GL_QUADS);
+        }
+
+        for(int i=0;i<4;i++){
+            glVertex3f(sarok[i]);
+        }
+        for(int i=4;i<8;i++){
+            glVertex3f(sarok[i]);
+        }
+
+
+        glVertex3f(sarok[0]);
+        glVertex3f(sarok[1]);
+        glVertex3f(sarok[5]);
+        glVertex3f(sarok[4]);
+
+        glVertex3f(sarok[3]);
+        glVertex3f(sarok[2]);
+        glVertex3f(sarok[6]);
+        glVertex3f(sarok[7]);
+
+        glVertex3f(sarok[0]);
+        glVertex3f(sarok[4]);
+        glVertex3f(sarok[7]);
+        glVertex3f(sarok[3]);
+
+        glVertex3f(sarok[1]);
+        glVertex3f(sarok[5]);
+        glVertex3f(sarok[6]);
+        glVertex3f(sarok[2]);
+
+
+
+        glEnd();
+    }
+
+    Vector getNormal(float x, float y, float z) {}
 
     void VertexOGL(float u, float v) {}
 };
 
+
 struct MIR {
     CRTest *test;
-    Napelem *napelemek[2];
+    Teglatest *napelemek[2];
     Vector center;
+    float nh;
+    Material crMaterial;
+
+    MIR(Vector c, float napelemhossz=1.5){
+        center=c;
+        nh=napelemhossz;
+    }
 
     void build() {
 
+
+        crMaterial =Material(Color(1, 1, 1), Color(0.5, 0.5, 0.5), Color(0.2, 0.2, 0.2), 100);
+        test=new CRTest(&crMaterial, NULL, center);
+        Vector napelemCenter1=center+test->cr.controlPoints[test->cr.pointnum-1]+Vector(nh/2,0,-0.5);
+        Vector napelemCenter2=center+test->cr.controlPoints[test->cr.pointnum-1]-Vector(nh/2,0,0.5);
+        napelemek[0] =new Teglatest(NULL,napelemCenter1,nh,0.5,0.01);
+        napelemek[1] =new Teglatest(NULL,napelemCenter2,nh,0.5,0.01);
     }
 
     void draw() {
 
+
+        test->draw();
+
+        glColor3f(0.5,0.5,0.5);
+        napelemek[0]->draw();
+        napelemek[1]->draw();
+        glClearColor(0,0,0,0);
+    }
+
+    ~MIR(){
+        delete test;
+        delete[] napelemek;
     }
 };
 
@@ -559,9 +760,9 @@ struct Muhold {
     Material testm;
     Material fuvokam;
 
-    Muhold(Vector c) {
+    Muhold(Vector c, float R) {
         center = c;
-        r = 1;
+        r = R;
     }
 
     void build() {
@@ -578,7 +779,6 @@ struct Muhold {
 
         fuvokak[4] = new Henger(&fuvokam, Vector(center.x, center.y, center.z + r), r / 2, r / 10, Vector(0, 0, r));
         fuvokak[5] = new Henger(&fuvokam, Vector(center.x, center.y, center.z - r), r / 2, r / 10, Vector(0, 0, -r));
-
 
 
     }
@@ -670,23 +870,22 @@ struct Scene {
 
     void build() {
         camera = new Camera(Vector(0, -10, 3), Vector(0, 0, 0), Vector(0, 0, 1));
-        Sun = new Light(GL_LIGHT0, Vector(4, -2, 5), Color(20, 20, 20), Color(20, 20, 20), Color(20, 20, 20));
-        Sky = new Gomb(Vector(0, 0, 0), &planetMaterial, 50, &skyTexture);
+        Sun = new Light(GL_LIGHT0, Vector(0, -15, 5), Color(20, 20, 20), Color(20, 20, 20), Color(20, 20, 20));
+        Sky = new Gomb(Vector(0, 0, 0), NULL, 50, &skyTexture);
 
         glGenTextures(1, &(skyTexture.text_id));
         glBindTexture(GL_TEXTURE_2D, skyTexture.text_id);
         skyTexture.genSkyText();
 
-
-        //Henger(Material *m, Vector c, float hx,float r, Vector i)
-//        Material fem=Material(Color(0,0,0),Color(0,0,0),Color(0,0,0),1);
-//       objects[objectnum++]=new Henger(&fem, Vector(0,0,0), 1, 0.5, Vector(0,0,1));
-
-        muhold = new Muhold(Vector(-3, -3, 0));
+        mir=new MIR(Vector(3,0,0),2);
+        mir->build();
+        muhold = new Muhold(Vector(-3, -3, 0), 0.5);
         muhold->build();
 
         planetMaterial = Material(Color(1, 0.5, 0), Color(0, 0, 0), Color(0, 0, 0), 100);
-        planet = new Gomb(Vector(0, 0, -10), &planetMaterial, 8, &planetTexture);
+        planet = new Gomb(Vector(0, 3, -10), &planetMaterial, 10, &planetTexture);
+
+//        objects[objectnum++] =new Teglatest(NULL,Vector(1,0,1),1.5,0.5,0.2); //new CRTest(&planetMaterial);
 
         glGenTextures(2, &(planetTexture.text_id));
         glBindTexture(GL_TEXTURE_2D, planetTexture.text_id);
@@ -707,26 +906,33 @@ struct Scene {
 //			lights[i]->setOGL();
 //		}
         glDisable(GL_LIGHTING);
-        glEnable(GL_TEXTURE_2D);
-        Sky->draw();
-        glDisable(GL_TEXTURE_2D);
+        glEnable(GL_COLOR_MATERIAL);
+        glBegin(GL_LINE);
+            glColor3f(1,0,1);
+            glVertex3f(mir->center);
+            glVertex3f(muhold->center);
+        glEnd();
+        glDisable(GL_COLOR_MATERIAL);
         glEnable(GL_LIGHTING);
 
-        glEnable(GL_TEXTURE_2D);
-        planet->draw();
-        glDisable(GL_TEXTURE_2D);
-
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        Legkor->draw();
-        glDisable(GL_BLEND);
 
         for(int i = 0; i < objectnum; i++) {
 
             objects[i]->draw();
         }
+
+        mir->draw();
+
         muhold->draw();
 
+        Sky->draw();
+
+        planet->draw();
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        Legkor->draw();
+        glDisable(GL_BLEND);
 
     }
 
@@ -776,12 +982,36 @@ void onDisplay( )
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
-    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
+//    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
     if (key == 'l') {
         line = !line;
         glutPostRedisplay( );
     }
+    if (key == 'w') {
+        scene.camera->eye.z++;
+        glutPostRedisplay( );
+    }
+    if (key == 's') {
+        scene.camera->eye.z--;
+        glutPostRedisplay( );
+    }
+    if (key == 'a') {
+        scene.camera->eye.x--;
+        glutPostRedisplay( );
+    }
+    if (key == 'd') {
+        scene.camera->eye.x++;
+        glutPostRedisplay( );
+    }
 
+    if (key == 'm') {
+        scene.camera->eye.y++;
+        glutPostRedisplay( );
+    }
+    if (key == 'n') {
+        scene.camera->eye.y--;
+        glutPostRedisplay( );
+    }
 
 }
 
