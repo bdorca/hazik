@@ -598,14 +598,7 @@ struct Henger : public ParamObject {
     }
 
     Vector getNormal(float x, float y, float z) {
-        if(z < 0.001) {
-            return irany;
-        }
-        if(z > h - 0.001) {
-            return irany * -1;
-        }
         return Vector(x, y, 0);
-
     }
 
     void VertexOGL(float u, float v) {
