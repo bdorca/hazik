@@ -134,6 +134,10 @@ struct Color {
     Color operator+(const Color &c) {
         return Color(r + c.r, g + c.g, b + c.b);
     }
+
+    Color operator/(float a) {
+        return Color(r/a, g/a, b/a);
+    }
 };
 
 const int screenWidth = 600;
@@ -246,7 +250,7 @@ struct Material {
     }
 
     void changeAll(Color c) {
-        ka = kd = ks = c;
+        ka=kd=ks=c;
     }
 };
 
@@ -673,28 +677,33 @@ struct Teglatest : public ParamObject {
         }
 
         for(int i = 0; i < 4; i++) {
+            glNormal3f(-1,0,0);
             glVertex3fx(sarok[i]);
         }
         for(int i = 4; i < 8; i++) {
+            glNormal3f(1,0,0);
             glVertex3fx(sarok[i]);
         }
 
-
+        glNormal3f(0,0,-1);
         glVertex3fx(sarok[0]);
         glVertex3fx(sarok[1]);
         glVertex3fx(sarok[5]);
         glVertex3fx(sarok[4]);
 
+        glNormal3f(0,0,1);
         glVertex3fx(sarok[3]);
         glVertex3fx(sarok[2]);
         glVertex3fx(sarok[6]);
         glVertex3fx(sarok[7]);
 
+        glNormal3f(0,-1,0);
         glVertex3fx(sarok[0]);
         glVertex3fx(sarok[4]);
         glVertex3fx(sarok[7]);
         glVertex3fx(sarok[3]);
 
+        glNormal3f(0,1,0);
         glVertex3fx(sarok[1]);
         glVertex3fx(sarok[5]);
         glVertex3fx(sarok[6]);
@@ -717,6 +726,7 @@ struct MIR {
     Vector center;
     float nh;
     Material crMaterial;
+    Material neMaterial;
 
     MIR(Vector c, float napelemhossz = 1.5) {
         center = c;
@@ -730,8 +740,9 @@ struct MIR {
         test = new CRTest(&crMaterial, NULL, center);
         Vector napelemCenter1 = test->cr.controlPoints[test->cr.pointnum-1] + Vector(nh / 2, 0, -0.5);
         Vector napelemCenter2 = test->cr.controlPoints[test->cr.pointnum-1] - Vector(nh / 2, 0, 0.5);
-        napelemek[0] = new Teglatest(NULL, napelemCenter1, nh, 0.5, 0.01);
-        napelemek[1] = new Teglatest(NULL, napelemCenter2, nh, 0.5, 0.01);
+        neMaterial=Material(Color(0.7,0.7,0.7), Color(0.5,0.5,0.5),Color(0.2,0.2,0.2),10);
+        napelemek[0] = new Teglatest(&neMaterial, napelemCenter1, nh, 0.5, 0.1);
+        napelemek[1] = new Teglatest(&neMaterial, napelemCenter2, nh, 0.5, 0.1);
     }
 
     void draw() {
@@ -742,9 +753,7 @@ struct MIR {
 
         test->draw();
 
-        glColor3f(0.5, 0.5, 0.5);
         napelemek[0]->draw();
-        glColor3f(0.5, 0.5, 0.5);
         napelemek[1]->draw();
 
         glPopMatrix();
@@ -804,21 +813,21 @@ struct Muhold {
             switch(i) {
                 case 0:
                     glRotatef(90, 0, 1, 0);
-                    fuvokam = Material(Color(1, 0, 0), Color(1, 0, 0), Color(1, 0, 0), 10);
+                    fuvokam = Material(Color(1, 0, 0), Color(0.5, 0, 0), Color(0.1, 0, 0), 10);
                     break;
                 case 1:
                     glRotatef(-90, 0, 1, 0);
                     break;
                 case 2:
                     glRotatef(-90, 1, 0, 0);
-                    fuvokam.changeAll(Color(0, 1, 0));
+                    fuvokam= Material(Color(0, 1, 0), Color(0, 0.5, 0), Color(0, 0.1, 0), 10);
                     break;
                 case 3:
                     glRotatef(90, 1, 0, 0);
                     break;
                 case 4:
                     glRotatef(0, 1, 0, 0);
-                    fuvokam.changeAll(Color(0, 0, 1));
+                    fuvokam= Material(Color(0, 0, 1), Color(0, 0, 0.5), Color(0, 0, 0.1), 10);
                     break;
                 case 5:
                     glRotatef(180, 0, 1, 0);
