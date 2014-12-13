@@ -783,6 +783,7 @@ struct Muhold {
         testm = Material(Color(0.5, 0.5, 0.5), Color(0.2, 0.2, 0.2), Color(0, 0, 0.1), 100);
         fuvokam = Material(Color(1, 0, 0), Color(1, 0, 0), Color(1, 0, 0), 10);
         test = new Gomb(center, &testm , r, NULL);
+        //Henger(Material *m, Vector c, float hx,float r, Vector i)
 
         fuvokak[0] = new Henger(&fuvokam, Vector(center.x + r, center.y, center.z), r / 2, r / 10, Vector(r, 0, 0));
         fuvokak[1] = new Henger(&fuvokam, Vector(center.x - r, center.y, center.z), r / 2, r / 10, Vector(-r, 0, 0));
@@ -886,7 +887,7 @@ struct Scene {
         muhold = new Muhold(Vector(-3, -35, 0), 0.3);
         muhold->build();
 
-        planetMaterial = Material(Color(1, 0.5, 0), Color(0, 0, 0), Color(0, 0, 0), 1);
+        planetMaterial = Material(Color(1, 0.5, 0), Color(0, 0, 0), Color(0, 0, 0), 100);
         planet = new Gomb(Vector(0, 3, -10), &planetMaterial, 10, &planetTexture);
 
 
@@ -923,13 +924,6 @@ struct Scene {
         muhold->draw();
 
         mir->draw();
-
-        glDisable(GL_LIGHTING);
-        glColor3f(1,1,1);
-        glBegin(GL_LINE_STRIP);
-        glVertex3fx(camera->eye-Vector(0,0,1));
-        glVertex3fx(camera->lookat);
-        glEnd();
 
 
         glPushMatrix();
