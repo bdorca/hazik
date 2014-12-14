@@ -268,7 +268,7 @@ struct Camera {
 		gluLookAt(eye.x, eye.y, eye.z, lookat.x, lookat.y, lookat.z, vup.x, vup.y, vup.z);
 	}
 
-	void moveIT(float stime, float etime);
+	void moveIT(float koz);
 };
 
 
@@ -870,7 +870,7 @@ struct Muhold {
 	float T;
 	Vector v;
 	Vector acp;
-	Vector aaa;
+
 
 	Muhold(Vector c, float R) {
 		center = c;
@@ -887,7 +887,7 @@ struct Muhold {
 		sebeltolas=Vector(0,0,0);
 		w=360.0/300000.0;
 		T=2*M_PI/w;
-		v=acp=aaa=Vector(0,0,0);
+		v=acp=Vector(0,0,0);
 	}
 
 	void build() {
@@ -979,7 +979,7 @@ struct Muhold {
 		validTuz[pos]=false;
 	}
 
-	void moveIT(Vector planet,long time) {
+	void moveIT(Vector planet,float time) {
 		float tav=(center-planet).Length();
 		v=(Vector(0,0,-1)*w)%(Vector(center-planet)*tav);
 		acp=(planet-center)*(v*v/tav);
@@ -988,8 +988,7 @@ struct Muhold {
 		center.x=planet.x-tav*sin(kering/(180)*M_PI);
 		center.y=planet.y-tav*cos(kering/(180)*M_PI);
 
-		sebesseg=sebesseg+aaa*time/100;
-
+		std::cout<<"sebesseg: "<<sebesseg.x<<" "<<sebesseg.y<<" "<<sebesseg.z<<std::endl;
 		center+=sebesseg*time;
 		test->center=center;
 
@@ -1006,9 +1005,6 @@ struct Muhold {
 	void setspeed(int pos, float seb) {
 		Vector v=fuvokak[pos]->irany;
 
-		//std::cout<<"irany: "<<v.x<<" "<<v.y<<" "<<v.z<<"; ";
-		std::cout<<"ford: "<<ford<<"; ";
-		std::cout<<"center: "<<center.x<<" "<<center.y<<" "<<center.z<<"; ";
 		float tomb[9];
 
 		tomb[0]=1;
@@ -1019,8 +1015,7 @@ struct Muhold {
 		Matrix m=Matrix(tomb,9);
 		v=v*m;
 		Vector s=v.normalize()*seb;
-		aaa=s;
-		//sebesseg+=s;
+		sebesseg+=s;
 		std::cout<<"sebci "<<s.x<<" "<<s.y<<" "<<s.z<<"; ";
 		std::cout<<"uj vektor: "<<v.x<<" "<<v.y<<" "<<v.z<<"; "<<sebesseg.x<<" "<<sebesseg.y<<" "<<sebesseg.z<<std::endl;
 	}
@@ -1060,7 +1055,7 @@ struct Scene {
 	void build() {
 		mir = new MIR(Vector(0, -30, 0), 2);
 
-		camera = new Camera(Vector(2,-30-0), mir->center, Vector(0, 0, 1));
+		camera = new Camera(Vector(0,-33,0), mir->center, Vector(0, 0, 1));
 
 		Sun = new Light(GL_LIGHT0, Vector(40, -80, 15), Color(400, 400, 400), Color(400, 400, 400), Color(400, 400, 400));
 		sun = new Gomb(Sun->pos, NULL, 1, NULL);
@@ -1091,28 +1086,36 @@ struct Scene {
 
 	void moveALL() {
 		float diff= now-lasttime;
-		static float ford=0;
+		muhold->moveIT(planet->center,diff/10.0);
 
-		float fordP=diff*360.0/1000000.0;
-		planet->fordulas=fmod(planet->fordulas+fordP, 360);
 
-		float fordMir=diff*360/100000.0;
-		mir->ford=fmod(mir->ford+fordMir,360);
-		//mir->moveIT(planet->center,diff);
+		float koz=0.01;
+		diff=koz;
+		for(float i=lasttime/10.0; i<now/10.0; i+=koz) {
 
-		float fordMuh=diff*360/100000.0;
-		muhold->ford=fmod(muhold->ford+fordMuh,360);
-		muhold->moveIT(planet->center,diff);
+			float fordP=diff*360.0/100000.0;
+			planet->fordulas=fmod(planet->fordulas+fordP, 360);
 
-		camera->moveIT(lasttime,now);
+			float fordMir=diff*360/10000.0;
+			mir->ford=fmod(mir->ford+fordMir,360);
 
+
+			float fordMuh=diff*360/10000.0;
+			muhold->ford=fmod(muhold->ford+fordMuh,360);
+
+
+			mir->moveIT(planet->center,diff);
+
+
+			camera->moveIT(koz);
+		}
 		lasttime=now;
 	}
 
 	void render() {
 		moveALL();
 		camera->lookat=mir->center;
-		//camera->eye=mir->center+Vector(3,0,0);
+
 		camera->setOGL();
 		Sun->setOGL();
 		glColor3f(1, 1, 1);
@@ -1211,6 +1214,7 @@ void onDisplay( )
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
+	static float szorzo= -0.001;
 //    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
 	if (key == 'l') {
 		line = !line;
@@ -1220,27 +1224,27 @@ void onKeyboard(unsigned char key, int x, int y)
 //		scene.camera->eye.z++;
 		scene.muhold->addTuz(5);
 
-		scene.muhold->setspeed(5, -0.00001);
+		scene.muhold->setspeed(5,szorzo);
 		glutPostRedisplay( );
 	}
 	if (key == 's') {
 //		scene.camera->eye.z--;
 		scene.muhold->addTuz(4);
-		scene.muhold->setspeed(4, -0.00001);
+		scene.muhold->setspeed(4, szorzo);
 
 		glutPostRedisplay( );
 	}
 	if (key == 'a') {
 //		scene.camera->eye.x--;
 		scene.muhold->addTuz(0);
-		scene.muhold->setspeed(0, -0.00001);
+		scene.muhold->setspeed(0, szorzo);
 
 		glutPostRedisplay( );
 	}
 	if (key == 'd') {
 //		scene.camera->eye.x++;
 		scene.muhold->addTuz(1);
-		scene.muhold->setspeed(1, -0.00001);
+		scene.muhold->setspeed(1, szorzo);
 
 		glutPostRedisplay( );
 	}
@@ -1248,7 +1252,7 @@ void onKeyboard(unsigned char key, int x, int y)
 	if (key == 'q') {
 //		scene.camera->eye.y++;
 		scene.muhold->addTuz(2);
-		scene.muhold->setspeed(2, -0.00001);
+		scene.muhold->setspeed(2, szorzo);
 
 
 		glutPostRedisplay( );
@@ -1256,7 +1260,7 @@ void onKeyboard(unsigned char key, int x, int y)
 	if (key == 'e') {
 //		scene.camera->eye.y--;
 		scene.muhold->addTuz(3);
-		scene.muhold->setspeed(3, -0.00001);
+		scene.muhold->setspeed(3, szorzo);
 
 		glutPostRedisplay( );
 	}
@@ -1319,28 +1323,18 @@ void onIdle( )
 }
 //------------------------------------------------------
 
-void Camera::moveIT(float stime, float etime)
+void Camera::moveIT(float koz)
 {
 
-	float t;
-	float i=etime-stime;
+	hossz=(eye-scene.mir->center).Length();
+	Vector force(0,0,0);
+	if(hossz>=maxhossz) {
+		Vector tav=scene.mir->center-eye;
+		force+=(tav.normalize())*(hossz)*-k;
 
-	float koz=0.01;
-    for(float i=stime;i<etime;i+=koz){
-		scene.mir->moveIT(scene.planet->center,koz);
-		hossz=(eye-scene.mir->center).Length();
-        Vector force(0,0,0);
-		if(hossz>=maxhossz) {
-			Vector tav=scene.mir->center-eye;
-			force+=(tav.normalize())*(hossz)*-k;
-			//std::cout<<eye.x<<" "<<eye.y<<" "<<eye.z<<"; "<<scene.mir->center.x<<" "<<scene.mir->center.y<<" "<<scene.mir->center.z<<"; "<<i<<" "<<hossz<<std::endl;
-			//std::cout<<"force: "<<force.x<<" "<<force.y<<" "<<force.z<<std::endl;
-
-		}
-        sebesseg=sebesseg-force/1.0*koz;
-        eye+=sebesseg*koz;
-    }
-
+	}
+	sebesseg=sebesseg-force/1.0*koz;
+	eye+=sebesseg*koz;
 
 }
 
