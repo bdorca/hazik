@@ -250,10 +250,10 @@ struct Camera {
 		fp = 0.1;
 		bp = 1000;
 
-		sebesseg=Vector(0,0.000000001,0);
-		maxhossz=1;
-		hossz=3;
-		k=0.000001;
+		sebesseg=Vector(0,0.001,0.001);
+		maxhossz=5;
+		hossz=0;
+		k=0.001;
 		suly=0.01;
 		sulyhajo=1;
 	}
@@ -424,7 +424,7 @@ struct CatmullRom {
 		controlPoints[2] = Vector(1, 0, 1);
 		controlPoints[3] = Vector(1.3, 0, 1.5);
 		controlPoints[4] = Vector(1.2, 0, 2);
-		controlPoints[5] = Vector(1, 0, 2.5);
+		controlPoints[5] = Vector(0.9, 0, 2.5);
 		controlPoints[6] = Vector(0.8, 0, 3);
 		controlPoints[7] = Vector(0.2, 0, 3.5);
 		controlPoints[8] = Vector(0.5, 0, 4);
@@ -835,7 +835,7 @@ struct MIR {
 
 
 
-	void moveIT(Vector planet,long time) {
+	void moveIT(Vector planet,float time) {
 		float tav=(center-planet).Length();
 		v=(Vector(0,0,-1)*w)%(Vector(center-planet)*tav);
 		acp=(planet-center)*(v*v/tav);
@@ -1060,7 +1060,7 @@ struct Scene {
 	void build() {
 		mir = new MIR(Vector(0, -30, 0), 2);
 
-		camera = new Camera(Vector(0, -20, 3), mir->center, Vector(0, 0, 1));
+		camera = new Camera(Vector(2,-30-0), mir->center, Vector(0, 0, 1));
 
 		Sun = new Light(GL_LIGHT0, Vector(40, -80, 15), Color(400, 400, 400), Color(400, 400, 400), Color(400, 400, 400));
 		sun = new Gomb(Sun->pos, NULL, 1, NULL);
@@ -1098,13 +1098,13 @@ struct Scene {
 
 		float fordMir=diff*360/100000.0;
 		mir->ford=fmod(mir->ford+fordMir,360);
-		mir->moveIT(planet->center,diff);
+		//mir->moveIT(planet->center,diff);
 
 		float fordMuh=diff*360/100000.0;
 		muhold->ford=fmod(muhold->ford+fordMuh,360);
 		muhold->moveIT(planet->center,diff);
 
-		//camera->moveIT(lasttime,now);
+		camera->moveIT(lasttime,now);
 
 		lasttime=now;
 	}
@@ -1324,19 +1324,23 @@ void Camera::moveIT(float stime, float etime)
 
 	float t;
 	float i=etime-stime;
-	Vector force(0,0,0);
-	for(int i=etime; i>stime; i--) {
 
-		scene.mir->moveIT(scene.planet->center,-i);
+	float koz=0.01;
+    for(float i=stime;i<etime;i+=koz){
+		scene.mir->moveIT(scene.planet->center,koz);
 		hossz=(eye-scene.mir->center).Length();
-		Vector tav=eye-scene.mir->center;
+        Vector force(0,0,0);
+		if(hossz>=maxhossz) {
+			Vector tav=scene.mir->center-eye;
+			force+=(tav.normalize())*(hossz)*-k;
+			//std::cout<<eye.x<<" "<<eye.y<<" "<<eye.z<<"; "<<scene.mir->center.x<<" "<<scene.mir->center.y<<" "<<scene.mir->center.z<<"; "<<i<<" "<<hossz<<std::endl;
+			//std::cout<<"force: "<<force.x<<" "<<force.y<<" "<<force.z<<std::endl;
 
-		force+=(tav.normalize())*(maxhossz-hossz)*-k;
+		}
+        sebesseg=sebesseg-force/1.0*koz;
+        eye+=sebesseg*koz;
+    }
 
-		scene.mir->moveIT(scene.planet->center,i);
-	}
-			sebesseg=sebesseg-force;
-		eye+=sebesseg*i;
 
 }
 
