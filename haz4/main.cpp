@@ -248,10 +248,10 @@ struct Camera {
 		fp = 0.1;
 		bp = 1000;
 
-		sebesseg=Vector(0,0.001,0.001);
-		maxhossz=5;
+		sebesseg=Vector(0,-0.1,0);
+		maxhossz=3;
 		hossz=0;
-		k=0.001;
+		k=25;
 	}
 
 	void setOGL() {
@@ -797,7 +797,7 @@ struct MIR {
 		ford=0;
 		fordTengely=Vector(1,1,0).normalize();
 		kering=0;
-		w=360.0/300000.0;
+		w=360.0/30.0;
 		T=2*M_PI/w;
 		v=acp=Vector(0,0,0);
 	}
@@ -832,6 +832,7 @@ struct MIR {
 
 
 	void moveIT(Vector planet,float time) {
+	    time/=1000.0;
 		float tav=(center-planet).Length();
 		v=(Vector(0,0,-1)*w)%(Vector(center-planet)*tav);
 		acp=(planet-center)*(v*v/tav);
@@ -881,7 +882,7 @@ struct Muhold {
 		fordTengely=Vector(1,0,0);
 		sebesseg=Vector(0,0,0);
 		sebeltolas=Vector(0,0,0);
-		w=360.0/300001.0;
+		w=360.0/31.0;
 		T=2*M_PI/w;
 		v=acp=Vector(0,0,0);
 	}
@@ -976,6 +977,7 @@ struct Muhold {
 	}
 
 	void moveIT(Vector planet,float time) {
+	    time/=1000.0;
 		float tav=(center-planet).Length();
 		v=(Vector(0,0,-1)*w)%(Vector(center-planet)*tav);
 		acp=(planet-center)*(v*v/tav);
@@ -1048,7 +1050,7 @@ struct Scene {
 	void build() {
 		mir = new MIR(Vector(0, -30, 0), 2);
 
-		camera = new Camera(Vector(0,-33,0), mir->center, Vector(0, 0, 1));
+		camera = new Camera(Vector(0,-31,0), mir->center, Vector(0, 0, 1));
 
 		Sun = new Light(GL_LIGHT0, Vector(40, -80, 15), Color(400, 400, 400), Color(400, 400, 400), Color(400, 400, 400));
 		sun = new Gomb(Sun->pos, NULL, 1, NULL);
@@ -1081,22 +1083,21 @@ struct Scene {
 		float diff= now-lasttime;
 		muhold->moveIT(planet->center,diff);
 
-
-		float koz=0.01;
+		float koz=1;
 		diff=koz;
 		for(float i=lasttime; i<now; i+=koz) {
 
-			float fordP=diff*360.0/1000000.0;
+			float fordP  =diff/1000*360/1000.0;
 			planet->ford=fmod(planet->ford+fordP, 360);
 
-			float fordMir=diff*360/100000.0;
+			float fordMir=diff/1000*360/100.0;
 			mir->ford=fmod(mir->ford+fordMir,360);
 
-			float fordMuh=diff*360/100000.0;
+			float fordMuh=diff/1000*360/100.0;
 			muhold->ford=fmod(muhold->ford+fordMuh,360);
 
 
-			mir->moveIT(planet->center,diff);
+			mir->moveIT(planet->center,koz);
 
 
 			camera->moveIT(koz);
@@ -1196,7 +1197,7 @@ void onDisplay( )
 // Billentyuzet esemenyeket lekezelo fuggveny (lenyomas)
 void onKeyboard(unsigned char key, int x, int y)
 {
-	static float szorzo= -0.001;
+	static float szorzo= -0.1;
 	if (key == 'l') {
 		line = !line;
 		glutPostRedisplay( );
@@ -1301,9 +1302,9 @@ void onIdle( )
 
 //------------------------------------------------------
 
-void Camera::moveIT(float koz)
+void Camera::moveIT(float time)
 {
-
+    time/=1000;
 	hossz=(eye-scene.mir->center).Length();
 	Vector force(0,0,0);
 	if(hossz>=maxhossz) {
@@ -1311,8 +1312,9 @@ void Camera::moveIT(float koz)
 		force+=(tav.normalize())*(hossz)*-k;
 
 	}
-	sebesseg=sebesseg+force/1.0*koz;
-	eye+=sebesseg*koz;
+	sebesseg=sebesseg+force/60.0*time;
+
+	eye+=sebesseg*time;
 
 }
 
