@@ -61,7 +61,7 @@
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // Innentol modosithatod...
-
+#include <iostream>
 
 struct Matrix {
 	float m[9];
@@ -881,7 +881,7 @@ struct Muhold {
 		fordTengely=Vector(1,0,0);
 		sebesseg=Vector(0,0,0);
 		sebeltolas=Vector(0,0,0);
-		w=360.0/300001.0;
+		w=360.0/300000.0;
 		T=2*M_PI/w;
 		v=acp=Vector(0,0,0);
 	}
@@ -984,6 +984,7 @@ struct Muhold {
 		center.x=planet.x-tav*sin(kering/(180)*M_PI);
 		center.y=planet.y-tav*cos(kering/(180)*M_PI);
 
+		std::cout<<"sebesseg: "<<sebesseg.x<<" "<<sebesseg.y<<" "<<sebesseg.z<<std::endl;
 		center+=sebesseg*time;
 		test->center=center;
 
@@ -1011,6 +1012,8 @@ struct Muhold {
 		v=v*m;
 		Vector s=v.normalize()*seb;
 		sebesseg+=s;
+		std::cout<<"sebci "<<s.x<<" "<<s.y<<" "<<s.z<<"; ";
+		std::cout<<"uj vektor: "<<v.x<<" "<<v.y<<" "<<v.z<<"; "<<sebesseg.x<<" "<<sebesseg.y<<" "<<sebesseg.z<<std::endl;
 	}
 
 	~Muhold() {
@@ -1197,29 +1200,34 @@ void onDisplay( )
 void onKeyboard(unsigned char key, int x, int y)
 {
 	static float szorzo= -0.001;
+//    if (key == 'd') glutPostRedisplay( ); 		// d beture rajzold ujra a kepet
 	if (key == 'l') {
 		line = !line;
 		glutPostRedisplay( );
 	}
 	if (key == 'w') {
+//		scene.camera->eye.z++;
 		scene.muhold->addTuz(5);
-		scene.muhold->setspeed(5,szorzo);
 
+		scene.muhold->setspeed(5,szorzo);
 		glutPostRedisplay( );
 	}
 	if (key == 's') {
+//		scene.camera->eye.z--;
 		scene.muhold->addTuz(4);
 		scene.muhold->setspeed(4, szorzo);
 
 		glutPostRedisplay( );
 	}
 	if (key == 'a') {
+//		scene.camera->eye.x--;
 		scene.muhold->addTuz(0);
 		scene.muhold->setspeed(0, szorzo);
 
 		glutPostRedisplay( );
 	}
 	if (key == 'd') {
+//		scene.camera->eye.x++;
 		scene.muhold->addTuz(1);
 		scene.muhold->setspeed(1, szorzo);
 
@@ -1227,12 +1235,15 @@ void onKeyboard(unsigned char key, int x, int y)
 	}
 
 	if (key == 'q') {
+//		scene.camera->eye.y++;
 		scene.muhold->addTuz(2);
 		scene.muhold->setspeed(2, szorzo);
+
 
 		glutPostRedisplay( );
 	}
 	if (key == 'e') {
+//		scene.camera->eye.y--;
 		scene.muhold->addTuz(3);
 		scene.muhold->setspeed(3, szorzo);
 
@@ -1261,18 +1272,15 @@ void onKeyboardUp(unsigned char key, int x, int y)
 	}
 	if (key == 'd') {
 		scene.muhold->removeTuz(1);
-
 		glutPostRedisplay( );
 	}
 
 	if (key == 'q') {
 		scene.muhold->removeTuz(2);
-
 		glutPostRedisplay( );
 	}
 	if (key == 'e') {
 		scene.muhold->removeTuz(3);
-
 		glutPostRedisplay( );
 	}
 }
@@ -1298,7 +1306,6 @@ void onIdle( )
 
 	glutPostRedisplay();
 }
-
 //------------------------------------------------------
 
 void Camera::moveIT(float koz)
