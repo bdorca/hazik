@@ -887,7 +887,7 @@ struct Scene {
         muhold = new Muhold(Vector(-3, -35, 0), 0.3);
         muhold->build();
 
-        planetMaterial = Material(Color(1, 0.5, 0), Color(0, 0, 0), Color(0, 0, 0), 100);
+        planetMaterial = Material(Color(1, 0.5, 0), Color(0, 0, 0), Color(0, 0, 0), 1);
         planet = new Gomb(Vector(0, 3, -10), &planetMaterial, 10, &planetTexture);
 
 
@@ -1039,16 +1039,16 @@ void onMouseMotion(int x, int y)
 // `Idle' esemenykezelo, jelzi, hogy az ido telik, az Idle esemenyek frekvenciajara csak a 0 a garantalt minimalis ertek
 void onIdle( )
 {
-    long now = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
-    long diff= now-lasttime;
-    static float ford=0;
-    if(diff>=16){
-        float fordx=diff*360.0/3000.0;
-        ford=fmod(ford+fordx, 360);
-        std::cout<<fordx<<" "<<ford<<" "<<diff<<" "<<lasttime<<" "<<now<<std::endl;
-        scene.planet->fordulas=ford;
-        lasttime=now;
-    }
+//    long now = glutGet(GLUT_ELAPSED_TIME);		// program inditasa ota eltelt ido
+//    long diff= now-lasttime;
+//    static float ford=0;
+//    if(diff>=16){
+//        float fordx=diff*360.0/3000.0;
+//        ford=fmod(ford+fordx, 360);
+//        std::cout<<fordx<<" "<<ford<<" "<<diff<<" "<<lasttime<<" "<<now<<std::endl;
+//        scene.planet->fordulas=ford;
+//        lasttime=now;
+//    }
 
     glutPostRedisplay();
 }
