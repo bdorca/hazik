@@ -1,6 +1,7 @@
 *.cpp.cbTemp
 *.depend
 *.layout
+*.cbp
 haz1/*.depend
 haz1/*.layout
 /bin
