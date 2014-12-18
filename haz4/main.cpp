@@ -251,7 +251,7 @@ struct Camera {
 		sebesseg=Vector(0,-0.1,0);
 		maxhossz=3;
 		hossz=0;
-		k=25;
+		k=12.5;
 	}
 
 	void setOGL() {

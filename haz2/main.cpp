@@ -971,9 +971,9 @@ void onInitialization( )
     scene.addObject(&flor);
 	buidCactuses();
 
-	light1=Light(Color(10,0,0),Vector(5,3,5));
-	light2=Light(Color(0,10,0),Vector(-5,3,-5));
-	light3=Light(Color(0,0,10),Vector(5,3,-5));
+	light1=Light(Color(1,0,0),Vector(5,3,5));
+	light2=Light(Color(0,1,0),Vector(-5,3,-5));
+	light3=Light(Color(0,0,1),Vector(5,3,-5));
 
 	scene.addLight(light1);
 	scene.addLight(light2);
