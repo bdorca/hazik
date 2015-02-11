@@ -1,3 +1,4 @@
+*Másolni nem ér!*
 <h1>Grafika házi feladatok (2014/2015/1)</h1>
 
 <h2>1. feladat</h2>
@@ -25,3 +26,5 @@ A játék célja, hogy a mesterséges hold a műhold nyílásán besétáljon.
 A harmadik feladat a játék "csendélete", még nem kell az objektumokat animálni és lángnyelvet sem kell kilőni. A virtuális világ életre keltése és vezérlése a negyedik házi feladata lesz.   
 
 *Másolni nem ér!*
+
+*kérdezni szabad*
